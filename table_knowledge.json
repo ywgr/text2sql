@@ -1,0 +1,525 @@
+{
+  "备货NY": {
+    "columns": [
+      "id",
+      "版本号",
+      "name",
+      "MTM",
+      "Series",
+      "本月备货",
+      "下月备货",
+      "备注"
+    ],
+    "column_info": [
+      [
+        0,
+        "id",
+        "BIGINT",
+        0,
+        null,
+        0
+      ],
+      [
+        1,
+        "版本号",
+        "TEXT",
+        0,
+        null,
+        0
+      ],
+      [
+        2,
+        "name",
+        "TEXT",
+        0,
+        null,
+        0
+      ],
+      [
+        3,
+        "MTM",
+        "TEXT",
+        0,
+        null,
+        0
+      ],
+      [
+        4,
+        "Series",
+        "TEXT",
+        0,
+        null,
+        0
+      ],
+      [
+        5,
+        "本月备货",
+        "FLOAT",
+        0,
+        null,
+        0
+      ],
+      [
+        6,
+        "下月备货",
+        "FLOAT",
+        0,
+        null,
+        0
+      ],
+      [
+        7,
+        "备注",
+        "TEXT",
+        0,
+        null,
+        0
+      ]
+    ],
+    "comment": "从lite自动导入",
+    "relationships": [
+      {
+        "table1": "备货NY",
+        "table2": "CONPD",
+        "field1": "MTM",
+        "field2": "PN",
+        "type": "manual",
+        "rel_type": "一对一",
+        "description": "备货NY.MTM <-> CONPD.PN",
+        "confidence": 1.0,
+        "create_time": "2025-07-20 22:03:55"
+      }
+    ],
+    "business_fields": {},
+    "import_time": "2025-07-20 21:53:06"
+  },
+  "CONPD": {
+    "columns": [
+      "PN",
+      "Roadmap Family",
+      "Group",
+      "Model"
+    ],
+    "column_info": [
+      [
+        0,
+        "PN",
+        "TEXT",
+        0,
+        null,
+        0
+      ],
+      [
+        1,
+        "Roadmap Family",
+        "TEXT",
+        0,
+        null,
+        0
+      ],
+      [
+        2,
+        "Group",
+        "TEXT",
+        0,
+        null,
+        0
+      ],
+      [
+        3,
+        "Model",
+        "TEXT",
+        0,
+        null,
+        0
+      ]
+    ],
+    "comment": "从lite自动导入",
+    "relationships": [
+      {
+        "table1": "CONPD",
+        "table2": "dtsupply_summary",
+        "field1": "Roadmap Family",
+        "field2": "Roadmap Family",
+        "type": "auto",
+        "description": "CONPD.Roadmap Family = dtsupply_summary.Roadmap Family",
+        "confidence": 0.8
+      },
+      {
+        "table1": "CONPD",
+        "table2": "dtsupply_summary",
+        "field1": "Group",
+        "field2": "Group",
+        "type": "auto",
+        "description": "CONPD.Group = dtsupply_summary.Group",
+        "confidence": 0.8
+      },
+      {
+        "table1": "备货NY",
+        "table2": "CONPD",
+        "field1": "MTM",
+        "field2": "PN",
+        "type": "manual",
+        "rel_type": "一对一",
+        "description": "备货NY.MTM <-> CONPD.PN",
+        "confidence": 1.0,
+        "create_time": "2025-07-20 22:03:55"
+      }
+    ],
+    "business_fields": {},
+    "import_time": "2025-07-20 21:53:06"
+  },
+  "dtsupply_summary": {
+    "columns": [
+      "财年",
+      "财月",
+      "财周",
+      "自然年",
+      "Group",
+      "Model",
+      "Roadmap Family",
+      "所有欠单",
+      "成品总量",
+      "BTC 库存总量",
+      "BTC 在途总量",
+      "联想DC库存",
+      "欠单",
+      "PO PSD",
+      "PO RSD",
+      "全链库存",
+      "全渠道库存",
+      "全链库存DOI",
+      "SellOut预测",
+      "SellIn",
+      "SellOut",
+      "日均SellOut",
+      "财周天数",
+      "FCST",
+      "RSD全链库存",
+      "PSD全链库存",
+      "RSD全链库存DOI",
+      "PSD全链库存DOI",
+      "FCST全链库存",
+      "FCST全链库存DOI",
+      "确认",
+      "TTLPSD",
+      "TTLRSD",
+      "TTLFCST",
+      "自然周",
+      "自然月X"
+    ],
+    "column_info": [
+      [
+        0,
+        "财年",
+        "BIGINT",
+        0,
+        null,
+        0
+      ],
+      [
+        1,
+        "财月",
+        "TEXT",
+        0,
+        null,
+        0
+      ],
+      [
+        2,
+        "财周",
+        "TEXT",
+        0,
+        null,
+        0
+      ],
+      [
+        3,
+        "自然年",
+        "BIGINT",
+        0,
+        null,
+        0
+      ],
+      [
+        4,
+        "Group",
+        "TEXT",
+        0,
+        null,
+        0
+      ],
+      [
+        5,
+        "Model",
+        "TEXT",
+        0,
+        null,
+        0
+      ],
+      [
+        6,
+        "Roadmap Family",
+        "TEXT",
+        0,
+        null,
+        0
+      ],
+      [
+        7,
+        "所有欠单",
+        "BIGINT",
+        0,
+        null,
+        0
+      ],
+      [
+        8,
+        "成品总量",
+        "BIGINT",
+        0,
+        null,
+        0
+      ],
+      [
+        9,
+        "BTC 库存总量",
+        "BIGINT",
+        0,
+        null,
+        0
+      ],
+      [
+        10,
+        "BTC 在途总量",
+        "BIGINT",
+        0,
+        null,
+        0
+      ],
+      [
+        11,
+        "联想DC库存",
+        "BIGINT",
+        0,
+        null,
+        0
+      ],
+      [
+        12,
+        "欠单",
+        "BIGINT",
+        0,
+        null,
+        0
+      ],
+      [
+        13,
+        "PO PSD",
+        "FLOAT",
+        0,
+        null,
+        0
+      ],
+      [
+        14,
+        "PO RSD",
+        "FLOAT",
+        0,
+        null,
+        0
+      ],
+      [
+        15,
+        "全链库存",
+        "BIGINT",
+        0,
+        null,
+        0
+      ],
+      [
+        16,
+        "全渠道库存",
+        "BIGINT",
+        0,
+        null,
+        0
+      ],
+      [
+        17,
+        "全链库存DOI",
+        "FLOAT",
+        0,
+        null,
+        0
+      ],
+      [
+        18,
+        "SellOut预测",
+        "FLOAT",
+        0,
+        null,
+        0
+      ],
+      [
+        19,
+        "SellIn",
+        "BIGINT",
+        0,
+        null,
+        0
+      ],
+      [
+        20,
+        "SellOut",
+        "BIGINT",
+        0,
+        null,
+        0
+      ],
+      [
+        21,
+        "日均SellOut",
+        "FLOAT",
+        0,
+        null,
+        0
+      ],
+      [
+        22,
+        "财周天数",
+        "BIGINT",
+        0,
+        null,
+        0
+      ],
+      [
+        23,
+        "FCST",
+        "FLOAT",
+        0,
+        null,
+        0
+      ],
+      [
+        24,
+        "RSD全链库存",
+        "BIGINT",
+        0,
+        null,
+        0
+      ],
+      [
+        25,
+        "PSD全链库存",
+        "BIGINT",
+        0,
+        null,
+        0
+      ],
+      [
+        26,
+        "RSD全链库存DOI",
+        "FLOAT",
+        0,
+        null,
+        0
+      ],
+      [
+        27,
+        "PSD全链库存DOI",
+        "FLOAT",
+        0,
+        null,
+        0
+      ],
+      [
+        28,
+        "FCST全链库存",
+        "BIGINT",
+        0,
+        null,
+        0
+      ],
+      [
+        29,
+        "FCST全链库存DOI",
+        "FLOAT",
+        0,
+        null,
+        0
+      ],
+      [
+        30,
+        "确认",
+        "BIGINT",
+        0,
+        null,
+        0
+      ],
+      [
+        31,
+        "TTLPSD",
+        "TEXT",
+        0,
+        null,
+        0
+      ],
+      [
+        32,
+        "TTLRSD",
+        "TEXT",
+        0,
+        null,
+        0
+      ],
+      [
+        33,
+        "TTLFCST",
+        "TEXT",
+        0,
+        null,
+        0
+      ],
+      [
+        34,
+        "自然周",
+        "TEXT",
+        0,
+        null,
+        0
+      ],
+      [
+        35,
+        "自然月X",
+        "TEXT",
+        0,
+        null,
+        0
+      ]
+    ],
+    "comment": "从lite自动导入",
+    "relationships": [
+      {
+        "table1": "CONPD",
+        "table2": "dtsupply_summary",
+        "field1": "Roadmap Family",
+        "field2": "Roadmap Family",
+        "type": "auto",
+        "description": "CONPD.Roadmap Family = dtsupply_summary.Roadmap Family",
+        "confidence": 0.8
+      },
+      {
+        "table1": "CONPD",
+        "table2": "dtsupply_summary",
+        "field1": "Group",
+        "field2": "Group",
+        "type": "auto",
+        "description": "CONPD.Group = dtsupply_summary.Group",
+        "confidence": 0.8
+      }
+    ],
+    "business_fields": {},
+    "import_time": "2025-07-20 21:53:06"
+  }
+}

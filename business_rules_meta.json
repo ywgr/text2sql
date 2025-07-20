@@ -1,0 +1,32 @@
+{
+  "月": {
+    "type": "字段",
+    "description": "7月 对应 where 财月='7月'",
+    "create_time": "2025-07-20 22:41:45",
+    "usage_count": 0
+  },
+  "年": {
+    "type": "时间",
+    "description": "25年  对应  where 自然年=2025",
+    "create_time": "2025-07-20 22:42:23",
+    "usage_count": 0
+  },
+  "510S": {
+    "type": "条件",
+    "description": "",
+    "create_time": "2025-07-21 00:06:24",
+    "usage_count": 0
+  },
+  "X月": {
+    "type": "条件",
+    "description": "",
+    "create_time": "2025-07-21 00:05:01",
+    "usage_count": 0
+  },
+  "预测": {
+    "type": "字段",
+    "description": "",
+    "create_time": "2025-07-21 00:06:59",
+    "usage_count": 0
+  }
+}

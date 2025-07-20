@@ -5864,15 +5864,69 @@ def show_database_management_page_restored(system):
                     st.write(f"**状态**: {'🟢 活跃' if db_config.get('active') else '🔴 非活跃'}")
                 
                 with col2:
+                    # 测试连接按钮
                     if st.button(f"测试连接", key=f"test_{db_id}"):
+                        # 修复SQLite连接测试 - 使用正确的参数名
+                        if db_config.get('type') == 'sqlite':
+                            test_config = {"file_path": db_config.get('config', {}).get('database', '')}
+                        else:
+                            test_config = db_config.get('config', {})
+                        
                         success, msg = system.db_manager.test_connection(
                             db_config.get('type'), 
-                            db_config.get('config', {})
+                            test_config
                         )
                         if success:
                             st.success(msg)
                         else:
                             st.error(msg)
+                    
+                    # 激活/停用按钮
+                    if db_config.get('active'):
+                        if st.button(f"停用", key=f"deactivate_{db_id}", type="secondary"):
+                            # 停用当前数据库
+                            system.databases[db_id]['active'] = False
+                            system.current_db = None
+                            system.save_database_configs()
+                            st.success(f"已停用数据库: {db_config.get('name', db_id)}")
+                            st.rerun()
+                    else:
+                        if st.button(f"激活", key=f"activate_{db_id}", type="primary"):
+                            # 先停用所有其他数据库
+                            for other_id in system.databases:
+                                system.databases[other_id]['active'] = False
+                            
+                            # 激活当前数据库
+                            system.databases[db_id]['active'] = True
+                            
+                            # 设置为当前连接
+                            if db_config.get('type') == 'sqlite':
+                                connect_config = {"database": db_config.get('config', {}).get('database', '')}
+                            else:
+                                connect_config = db_config.get('config', {})
+                            
+                            success = system.connect_database(db_config.get('type'), connect_config)
+                            if success:
+                                system.save_database_configs()
+                                st.success(f"已激活数据库: {db_config.get('name', db_id)}")
+                                st.rerun()
+                            else:
+                                system.databases[db_id]['active'] = False
+                                st.error(f"激活失败，无法连接到数据库")
+                    
+                    # 删除按钮
+                    if st.button(f"删除", key=f"delete_{db_id}", type="secondary"):
+                        # 如果是活跃数据库，先停用
+                        if db_config.get('active'):
+                            system.current_db = None
+                        
+                        # 删除数据库配置
+                        del system.databases[db_id]
+                        system.save_database_configs()
+                        st.success(f"已删除数据库配置: {db_config.get('name', db_id)}")
+                        st.rerun()
+    else:
+        st.info("暂无数据库配置")
     
     # 添加新数据库配置
     st.subheader("➕ 添加新数据库")
@@ -5967,26 +6021,33 @@ def show_sql_query_page_restored(system):
         col1, col2 = st.columns([3, 1])
         
         with col1:
+            # 获取示例SQL（如果有的话）
+            default_sql = st.session_state.get('example_sql', '')
             sql_query = st.text_area(
                 "输入SQL查询:",
+                value=default_sql,
                 height=150,
                 placeholder="SELECT * FROM table_name LIMIT 10"
             )
+            
+            # 清除示例SQL状态
+            if 'example_sql' in st.session_state:
+                del st.session_state.example_sql
         
         with col2:
             st.write("**示例查询:**")
             if st.button("显示所有表", key="show_tables"):
                 if db_config.get('type') == 'sqlite':
-                    sql_query = "SELECT name FROM sqlite_master WHERE type='table'"
+                    st.session_state.example_sql = "SELECT name FROM sqlite_master WHERE type='table'"
                 else:
-                    sql_query = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE'"
+                    st.session_state.example_sql = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE'"
                 st.rerun()
             
             if st.button("表结构查询", key="table_info"):
                 if db_config.get('type') == 'sqlite':
-                    sql_query = "PRAGMA table_info(table_name)"
+                    st.session_state.example_sql = "PRAGMA table_info(table_name)"
                 else:
-                    sql_query = "SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='table_name'"
+                    st.session_state.example_sql = "SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='table_name'"
                 st.rerun()
         
         # 执行查询
@@ -6190,8 +6251,8 @@ def show_prompt_templates_page_enhanced():
             st.rerun()
 
 def show_data_analysis_page():
-    """数据分析页面"""
-    st.header("📊 数据分析")
+    """完整的数据分析页面 - 包含数据库管理和表结构管理"""
+    st.header("📊 数据分析与管理")
     
     # 检查是否有系统实例
     if 'text2sql_system' not in st.session_state:
@@ -6200,99 +6261,520 @@ def show_data_analysis_page():
     
     system = st.session_state.text2sql_system
     
+    # 创建两个主要部分的标签页
+    tab1, tab2 = st.tabs(["🗄️ 数据库管理", "📋 表结构管理"])
+    
+    with tab1:
+        show_database_management_page_restored(system)
+    
+    with tab2:
+        show_table_structure_management_page(system)
+
+def show_table_structure_management_page(system):
+    """表结构管理页面 - 导入知识库和关联关系管理"""
+    st.header("📋 表结构管理")
+    
+    # 检查数据库连接
     if not system.current_db:
-        st.warning("请先连接数据库")
+        st.warning("请先在数据库管理中连接数据库")
         return
     
-    try:
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        st.subheader("数据库表结构")
+        
         # 获取数据库表列表
-        if system.current_db["type"] == "sqlite":
-            conn = sqlite3.connect(system.current_db["config"]["database"])
-            cursor = conn.cursor()
-            cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
-            tables = [row[0] for row in cursor.fetchall()]
-            conn.close()
-        else:
+        try:
+            if system.current_db["type"] == "sqlite":
+                conn = sqlite3.connect(system.current_db["config"]["database"])
+                cursor = conn.cursor()
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
+                tables = [row[0] for row in cursor.fetchall()]
+                conn.close()
+            elif system.current_db["type"] == "mssql":
+                tables = system.db_manager.get_tables(system.current_db["type"], system.current_db["config"])
+            else:
+                tables = []
+        except Exception as e:
+            st.error(f"获取表列表失败: {e}")
             tables = []
         
         if not tables:
             st.info("数据库中没有表")
             return
         
-        # 表选择
-        selected_table = st.selectbox("选择要分析的表:", tables)
+        # 显示表列表和管理
+        for table in tables:
+            with st.expander(f"📊 {table}", expanded=False):
+                try:
+                    # 获取表结构
+                    schema = system.db_manager.get_table_schema(
+                        system.current_db["type"], 
+                        system.current_db["config"], 
+                        table
+                    )
+                    
+                    if schema:
+                        # 显示列信息
+                        st.write("**列信息:**")
+                        if schema.get("column_info"):
+                            columns_df = pd.DataFrame(
+                                schema["column_info"], 
+                                columns=['ID', '列名', '类型', '可空', '默认值', '主键']
+                            )
+                            st.dataframe(columns_df, use_container_width=True)
+                        
+                        # 表备注
+                        table_key = f"{system.current_db['type']}_{table}"
+                        current_comment = system.table_knowledge.get(table_key, {}).get("comment", "")
+                        new_comment = st.text_area(
+                            f"表备注 ({table}):",
+                            value=current_comment,
+                            key=f"table_comment_{table}"
+                        )
+                        
+                        # 字段备注
+                        st.write("**字段备注:**")
+                        field_comments = system.table_knowledge.get(table_key, {}).get("fields", {})
+                        
+                        for column in schema["columns"]:
+                            current_field_comment = field_comments.get(column, "")
+                            new_field_comment = st.text_input(
+                                f"{column}:",
+                                value=current_field_comment,
+                                key=f"field_comment_{table}_{column}"
+                            )
+                            field_comments[column] = new_field_comment
+                        
+                        # 保存按钮
+                        if st.button(f"保存 {table} 的备注", key=f"save_{table}"):
+                            if table_key not in system.table_knowledge:
+                                system.table_knowledge[table_key] = {}
+                            
+                            system.table_knowledge[table_key]["comment"] = new_comment
+                            system.table_knowledge[table_key]["fields"] = field_comments
+                            system.table_knowledge[table_key]["schema"] = schema
+                            system.table_knowledge[table_key]["columns"] = schema["columns"]
+                            
+                            if system.save_table_knowledge():
+                                st.success(f"已保存 {table} 的备注信息")
+                            else:
+                                st.error("保存失败")
+                        
+                        # 添加到知识库
+                        if st.button(f"添加 {table} 到知识库", key=f"add_to_kb_{table}"):
+                            if table_key not in system.table_knowledge:
+                                system.table_knowledge[table_key] = {}
+                            
+                            system.table_knowledge[table_key] = {
+                                "comment": new_comment,
+                                "fields": field_comments,
+                                "schema": schema,
+                                "columns": schema["columns"],
+                                "column_info": schema["column_info"],
+                                "relationships": system.table_knowledge.get(table_key, {}).get("relationships", [])
+                            }
+                            
+                            if system.save_table_knowledge():
+                                st.success(f"已添加 {table} 到知识库")
+                            else:
+                                st.error("添加失败")
+                except Exception as e:
+                    st.error(f"处理表 {table} 时出错: {e}")
         
-        if selected_table:
-            # 显示表结构
-            st.subheader(f"📋 表结构: {selected_table}")
-            
-            conn = sqlite3.connect(system.current_db["config"]["database"])
-            cursor = conn.cursor()
-            cursor.execute(f"PRAGMA table_info({selected_table})")
-            columns_info = cursor.fetchall()
-            
-            # 显示列信息
-            columns_df = pd.DataFrame(columns_info, columns=['ID', '列名', '类型', '非空', '默认值', '主键'])
-            st.dataframe(columns_df, use_container_width=True)
-            
-            # 显示数据预览
-            st.subheader("📊 数据预览")
-            preview_df = pd.read_sql_query(f"SELECT * FROM {selected_table} LIMIT 10", conn)
-            st.dataframe(preview_df, use_container_width=True)
-            
-            # 数据统计
-            st.subheader("📈 数据统计")
-            
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                # 记录数
-                cursor.execute(f"SELECT COUNT(*) FROM {selected_table}")
-                row_count = cursor.fetchone()[0]
-                st.metric("总记录数", row_count)
-            
-            with col2:
-                # 列数
-                st.metric("列数", len(columns_info))
-            
-            conn.close()
-            
-            # 数值列分析
-            numeric_columns = []
-            for col in columns_info:
-                if 'INT' in col[2].upper() or 'REAL' in col[2].upper() or 'NUMERIC' in col[2].upper():
-                    numeric_columns.append(col[1])
-            
-            if numeric_columns:
-                st.subheader("📊 数值列分析")
-                selected_numeric_col = st.selectbox("选择数值列:", numeric_columns)
-                
-                if selected_numeric_col:
-                    conn = sqlite3.connect(system.current_db["config"]["database"])
-                    stats_df = pd.read_sql_query(f"""
-                        SELECT 
-                            COUNT({selected_numeric_col}) as 计数,
-                            AVG({selected_numeric_col}) as 平均值,
-                            MIN({selected_numeric_col}) as 最小值,
-                            MAX({selected_numeric_col}) as 最大值
-                        FROM {selected_table}
-                        WHERE {selected_numeric_col} IS NOT NULL
-                    """, conn)
-                    
-                    col1, col2, col3, col4 = st.columns(4)
-                    with col1:
-                        st.metric("计数", int(stats_df['计数'].iloc[0]))
-                    with col2:
-                        st.metric("平均值", f"{stats_df['平均值'].iloc[0]:.2f}")
-                    with col3:
-                        st.metric("最小值", stats_df['最小值'].iloc[0])
-                    with col4:
-                        st.metric("最大值", stats_df['最大值'].iloc[0])
-                    
-                    conn.close()
+        # --- 已导入知识库的表 ---
+        st.subheader("已导入知识库的表")
+        if system.table_knowledge:
+            for table_name in list(system.table_knowledge.keys()):
+                col_a, col_b = st.columns([3, 1])
+                with col_a:
+                    st.write(f"- {table_name}")
+                with col_b:
+                    if st.button("删除", key=f"del_kb_{table_name}"):
+                        del system.table_knowledge[table_name]
+                        system.save_table_knowledge()
+                        st.success(f"已删除表 {table_name}")
+                        st.rerun()
+        else:
+            st.info("知识库为空")
+
+        # --- 自动生成表字段关联按钮与展示区 ---
+        st.subheader("表关联管理")
+        if st.button("自动生成表字段关联", type="primary"):
+            # 自动分析并保存所有表关联
+            relationships = []
+            table_names = list(system.table_knowledge.keys())
+            for i, table1 in enumerate(table_names):
+                for table2 in table_names[i+1:]:
+                    cols1 = system.table_knowledge[table1]["columns"]
+                    cols2 = system.table_knowledge[table2]["columns"]
+                    # 同名字段
+                    common_fields = set(cols1) & set(cols2)
+                    for field in common_fields:
+                        relationships.append({
+                            "table1": table1,
+                            "table2": table2,
+                            "field1": field,
+                            "field2": field,
+                            "type": "auto",
+                            "description": f"{table1}.{field} = {table2}.{field}"
+                        })
+                    # ID字段
+                    for col1 in cols1:
+                        if col1.lower().endswith('id'):
+                            for col2 in cols2:
+                                if col2.lower().endswith('id') and col1 != col2:
+                                    relationships.append({
+                                        "table1": table1,
+                                        "table2": table2,
+                                        "field1": col1,
+                                        "field2": col2,
+                                        "type": "auto",
+                                        "description": f"{table1}.{col1} <-> {table2}.{col2}"
+                                    })
+            # 保存到每个表
+            for table_name in system.table_knowledge:
+                # 只保留手工添加的
+                manual_rels = [r for r in system.table_knowledge[table_name].get("relationships", []) if r.get("type") == "manual"]
+                auto_rels = [r for r in relationships if r["table1"] == table_name or r["table2"] == table_name]
+                system.table_knowledge[table_name]["relationships"] = manual_rels + auto_rels
+            system.save_table_knowledge()
+            st.success(f"已自动生成 {len(relationships)} 条表关联关系，请下方查看。")
+            st.rerun()
+
+        # 展示所有表关联（自动+手工）
+        st.subheader("表关联关系展示区")
+        
+        # 收集所有表关联关系
+        all_relationships = []
+        for table_name, table_info in system.table_knowledge.items():
+            for rel in table_info.get("relationships", []):
+                rel_type = "手工" if rel.get("type") == "manual" else "自动"
+                all_relationships.append({
+                    "表1": rel.get("table1", ""),
+                    "字段1": rel.get("field1", ""),
+                    "表2": rel.get("table2", ""),
+                    "字段2": rel.get("field2", ""),
+                    "类型": rel_type,
+                    "描述": rel.get("description", "")
+                })
+        
+        # 表头
+        header_cols = st.columns([2, 2, 2, 2, 1, 3, 1])
+        header_cols[0].markdown("**表1**")
+        header_cols[1].markdown("**字段1**")
+        header_cols[2].markdown("**表2**")
+        header_cols[3].markdown("**字段2**")
+        header_cols[4].markdown("**类型**")
+        header_cols[5].markdown("**描述**")
+        header_cols[6].markdown("**操作**")
+        # 每行渲染
+        if all_relationships:
+            for idx, rel in enumerate(all_relationships):
+                cols = st.columns([2, 2, 2, 2, 1, 3, 1])
+                cols[0].write(rel["表1"])
+                cols[1].write(rel["字段1"])
+                cols[2].write(rel["表2"])
+                cols[3].write(rel["字段2"])
+                cols[4].write(rel["类型"])
+                cols[5].write(rel["描述"])
+                with cols[6]:
+                    if st.button("删除", key=f"del_rel_{idx}"):
+                        for t in [rel["表1"], rel["表2"]]:
+                            if t in system.table_knowledge:
+                                system.table_knowledge[t]["relationships"] = [
+                                    r for r in system.table_knowledge[t]["relationships"]
+                                    if not (
+                                        r.get("table1") == rel["表1"] and
+                                        r.get("table2") == rel["表2"] and
+                                        r.get("field1") == rel["字段1"] and
+                                        r.get("field2") == rel["字段2"] and
+                                        (r.get("type") == ("manual" if rel["类型"] == "手工" else "auto"))
+                                    )
+                                ]
+                        system.save_table_knowledge()
+                        st.success("已删除该表关联！")
+                        st.rerun()
+        else:
+            st.info("暂无表关联关系，请点击上方按钮自动生成。")
+
+        # --- 手工添加表字段关联 ---
+        st.subheader("手工添加表字段关联")
+        if len(system.table_knowledge) >= 2:
+            table_names = list(system.table_knowledge.keys())
+            # 表选择放在表单外，保证字段下拉实时联动
+            manual_table1 = st.selectbox("表1", table_names, key="manual_table1_out")
+            manual_table2 = st.selectbox("表2", table_names, key="manual_table2_out")
+            field1_options = system.table_knowledge[manual_table1]["columns"] if manual_table1 in system.table_knowledge else []
+            field2_options = system.table_knowledge[manual_table2]["columns"] if manual_table2 in system.table_knowledge else []
+            with st.form("add_manual_relationship"):
+                manual_field1 = st.selectbox("字段1", field1_options, key=f"manual_field1_{manual_table1}")
+                manual_field2 = st.selectbox("字段2", field2_options, key=f"manual_field2_{manual_table2}")
+                manual_desc = st.text_input("关联描述", value=f"{manual_table1}.{manual_field1} <-> {manual_table2}.{manual_field2}")
+                submitted = st.form_submit_button("添加手工关联")
+                if submitted:
+                    rel = {
+                        "table1": manual_table1,
+                        "table2": manual_table2,
+                        "field1": manual_field1,
+                        "field2": manual_field2,
+                        "type": "manual",
+                        "description": manual_desc
+                    }
+                    for t in [manual_table1, manual_table2]:
+                        if "relationships" not in system.table_knowledge[t]:
+                            system.table_knowledge[t]["relationships"] = []
+                        system.table_knowledge[t]["relationships"].append(rel)
+                    system.save_table_knowledge()
+                    st.success("手工关联已添加！")
+                    st.rerun()
+        else:
+            st.info("请先导入至少两个表后再添加手工关联。")
     
-    except Exception as e:
-        st.error(f"数据分析失败: {str(e)}")
+    with col2:
+        st.subheader("表结构管理说明")
+        st.markdown("""
+        ### 功能说明
+        - **查看表结构**: 显示字段信息和类型
+        - **添加备注**: 为表和字段添加业务说明
+        - **添加到知识库**: 将表结构保存到知识库
+        - **自动生成关联**: 分析表间字段关联关系
+        - **手工添加关联**: 手动定义表关联关系
+        
+        ### 操作步骤
+        1. 选择要管理的数据库
+        2. 展开要编辑的表
+        3. 添加表和字段的备注
+        4. 保存备注信息
+        5. 添加表到知识库
+        6. 生成或手工添加表关联关系
+        
+        ### 关联关系说明
+        - **自动关联**: 基于同名字段和ID字段
+        - **手工关联**: 用户手动定义的关联
+        - **关联用途**: 用于多表查询的JOIN条件
+        """)
+        
+        # 统计信息
+        st.subheader("统计信息")
+        
+        kb_table_count = len(system.table_knowledge)
+        st.metric("知识库表数", kb_table_count)
+        
+        total_relationships = 0
+        for table_info in system.table_knowledge.values():
+            total_relationships += len(table_info.get("relationships", []))
+        
+        st.metric("表关联数", total_relationships)
+        
+        # 批量操作
+        st.subheader("批量操作")
+        
+        if st.button("清空知识库"):
+            if st.checkbox("确认清空知识库"):
+                system.table_knowledge = {}
+                system.save_table_knowledge()
+                st.success("已清空表知识库")
+                st.rerun()
+
+def show_product_management_page_enhanced():
+    """增强的产品管理页面"""
+    st.header("🔧 产品管理")
+    
+    # 加载产品知识库
+    try:
+        with open('product_knowledge.json', 'r', encoding='utf-8') as f:
+            product_knowledge = json.load(f)
+    except:
+        product_knowledge = {"products": {}}
+    
+    # 产品统计
+    st.subheader("📊 产品统计")
+    
+    if product_knowledge.get('products'):
+        total_products = len(product_knowledge['products'])
+        
+        # 统计产品系列
+        families = {}
+        for pn, product in product_knowledge['products'].items():
+            family = product.get('Roadmap Family', '未知')
+            if family not in families:
+                families[family] = 0
+            families[family] += 1
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.metric("总产品数", total_products)
+        
+        with col2:
+            st.metric("产品系列数", len(families))
+        
+        with col3:
+            most_common_family = max(families.items(), key=lambda x: x[1]) if families else ("无", 0)
+            st.metric("最大系列", f"{most_common_family[0]} ({most_common_family[1]})")
+        
+        # 产品系列分布图表
+        st.subheader("📈 产品系列分布")
+        if families:
+            family_df = pd.DataFrame(list(families.items()), columns=['产品系列', '数量'])
+            st.bar_chart(family_df.set_index('产品系列'))
+        
+        # 产品搜索和筛选
+        st.subheader("🔍 产品搜索")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            search_term = st.text_input("搜索产品 (PN或名称):", key="product_search")
+        
+        with col2:
+            family_filter = st.selectbox("筛选产品系列:", ["全部"] + list(families.keys()), key="family_filter")
+        
+        # 显示产品列表
+        st.subheader("📋 产品列表")
+        
+        # 筛选产品
+        filtered_products = []
+        for pn, product in product_knowledge['products'].items():
+            # 搜索筛选
+            if search_term and search_term.lower() not in pn.lower() and search_term.lower() not in product.get('Model', '').lower():
+                continue
+            
+            # 系列筛选
+            if family_filter != "全部" and product.get('Roadmap Family') != family_filter:
+                continue
+            
+            filtered_products.append({
+                'PN': pn,
+                'Roadmap Family': product.get('Roadmap Family', ''),
+                'Group': product.get('Group', ''),
+                'Model': product.get('Model', ''),
+                'Description': product.get('Description', '')
+            })
+        
+        if filtered_products:
+            products_df = pd.DataFrame(filtered_products)
+            st.dataframe(products_df, use_container_width=True)
+            
+            # 导出功能
+            if st.button("📥 导出筛选结果为CSV"):
+                csv = products_df.to_csv(index=False, encoding='utf-8-sig')
+                st.download_button(
+                    label="下载CSV文件",
+                    data=csv,
+                    file_name=f"products_filtered_{time.strftime('%Y%m%d_%H%M%S')}.csv",
+                    mime="text/csv"
+                )
+        else:
+            st.info("没有找到匹配的产品")
+    
+    else:
+        st.info("产品知识库为空")
+    
+    # 产品管理操作
+    st.subheader("⚙️ 产品管理操作")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.write("**添加新产品:**")
+        
+        new_pn = st.text_input("产品PN:", key="new_pn")
+        new_family = st.text_input("产品系列:", key="new_family")
+        new_group = st.text_input("产品组:", key="new_group")
+        new_model = st.text_input("产品型号:", key="new_model")
+        new_description = st.text_area("产品描述:", key="new_description")
+        
+        if st.button("添加产品", key="add_product"):
+            if new_pn and new_family:
+                if 'products' not in product_knowledge:
+                    product_knowledge['products'] = {}
+                
+                product_knowledge['products'][new_pn] = {
+                    'Roadmap Family': new_family,
+                    'Group': new_group,
+                    'Model': new_model,
+                    'Description': new_description
+                }
+                
+                try:
+                    with open('product_knowledge.json', 'w', encoding='utf-8') as f:
+                        json.dump(product_knowledge, f, ensure_ascii=False, indent=2)
+                    st.success(f"已添加产品: {new_pn}")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"保存失败: {str(e)}")
+            else:
+                st.warning("请至少填写产品PN和产品系列")
+    
+    with col2:
+        st.write("**删除产品:**")
+        
+        if product_knowledge.get('products'):
+            product_list = list(product_knowledge['products'].keys())
+            delete_pn = st.selectbox("选择要删除的产品:", [""] + product_list, key="delete_pn")
+            
+            if delete_pn:
+                st.write(f"**产品信息:**")
+                product_info = product_knowledge['products'][delete_pn]
+                st.json(product_info)
+                
+                if st.button("确认删除", type="secondary", key="confirm_delete"):
+                    del product_knowledge['products'][delete_pn]
+                    
+                    try:
+                        with open('product_knowledge.json', 'w', encoding='utf-8') as f:
+                            json.dump(product_knowledge, f, ensure_ascii=False, indent=2)
+                        st.success(f"已删除产品: {delete_pn}")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"删除失败: {str(e)}")
+        else:
+            st.info("没有产品可删除")
+    
+    # 批量导入功能
+    st.subheader("📤 批量导入")
+    
+    uploaded_file = st.file_uploader("上传产品CSV文件", type=['csv'], key="upload_products")
+    
+    if uploaded_file is not None:
+        try:
+            df = pd.read_csv(uploaded_file)
+            st.write("预览上传的数据:")
+            st.dataframe(df.head(), use_container_width=True)
+            
+            if st.button("确认导入", key="confirm_import"):
+                imported_count = 0
+                
+                for _, row in df.iterrows():
+                    pn = str(row.get('PN', ''))
+                    if pn:
+                        if 'products' not in product_knowledge:
+                            product_knowledge['products'] = {}
+                        
+                        product_knowledge['products'][pn] = {
+                            'Roadmap Family': str(row.get('Roadmap Family', '')),
+                            'Group': str(row.get('Group', '')),
+                            'Model': str(row.get('Model', '')),
+                            'Description': str(row.get('Description', ''))
+                        }
+                        imported_count += 1
+                
+                if imported_count > 0:
+                    try:
+                        with open('product_knowledge.json', 'w', encoding='utf-8') as f:
+                            json.dump(product_knowledge, f, ensure_ascii=False, indent=2)
+                        st.success(f"成功导入 {imported_count} 个产品")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"保存失败: {str(e)}")
+                else:
+                    st.warning("没有有效的产品数据可导入")
+                    
+        except Exception as e:
+            st.error(f"文件读取失败: {str(e)}")
 
 def main():
     """主函数"""

@@ -580,12 +580,143 @@ class MultiTableSQLValidator:
         
         return alias_map
 
+class QueryOptimizationPatch:
+    """查询优化补丁 - 解决510S等单表查询问题"""
+    
+    def __init__(self):
+        self.single_table_patterns = {
+            "dtsupply_summary": [
+                "全链库存", "财年", "财月", "财周", "Roadmap Family", "Group", "Model",
+                "所有欠单", "成品总量", "BTC 库存总量", "联想DC库存", "欠单", "SellOut", "SellIn"
+            ]
+        }
+        
+        self.product_mapping = {
+            "510s": "天逸510S",
+            "510S": "天逸510S",
+            "geek": "GeekPro", 
+            "小新": "小新",
+            "拯救者": "拯救者"
+        }
+    
+    def should_use_single_table(self, question: str, target_fields: List[str]) -> Tuple[bool, str]:
+        """判断是否应该使用单表查询"""
+        for table_name, table_fields in self.single_table_patterns.items():
+            if all(field in table_fields for field in target_fields):
+                if self._can_handle_entities_in_table(question, table_name):
+                    return True, table_name
+        return False, ""
+    
+    def _can_handle_entities_in_table(self, question: str, table_name: str) -> bool:
+        """检查实体是否能在指定表中处理"""
+        if table_name == "dtsupply_summary":
+            product_keywords = ["510s", "510S", "geek", "小新", "拯救者"]
+            return any(keyword in question for keyword in product_keywords)
+        return False
+    
+    def parse_time_conditions_correctly(self, question: str) -> Dict[str, any]:
+        """正确解析时间条件"""
+        conditions = {}
+        
+        # 解析年份 - 25年 -> 2025
+        year_match = re.search(r'(\d{2})年', question)
+        if year_match:
+            year_str = year_match.group(1)
+            year_value = int("20" + year_str) if len(year_str) == 2 else int(year_str)
+            conditions["财年"] = year_value
+            conditions["自然年"] = year_value
+        
+        # 解析月份 - 7月 -> "7月"
+        month_match = re.search(r'(\d{1,2})月', question)
+        if month_match:
+            month_str = month_match.group(1)
+            conditions["财月"] = f"{month_str}月"
+        
+        # 特殊标识 - 全链库存 -> ttl
+        if "全链库存" in question:
+            conditions["财周"] = "ttl"
+        
+        return conditions
+    
+    def fix_product_matching(self, question: str) -> Dict[str, str]:
+        """修复产品匹配"""
+        product_conditions = {}
+        question_lower = question.lower()
+        
+        for pattern, actual_name in self.product_mapping.items():
+            if pattern.lower() in question_lower:
+                product_conditions["Roadmap Family"] = f"LIKE '%{actual_name}%'"
+                break
+        
+        return product_conditions
+    
+    def generate_optimized_sql(self, question: str) -> str:
+        """生成优化的SQL"""
+        target_fields = self._extract_target_fields(question)
+        use_single_table, table_name = self.should_use_single_table(question, target_fields)
+        
+        if use_single_table:
+            return self._generate_single_table_sql(question, table_name, target_fields)
+        else:
+            return None  # 返回None表示使用原有多表逻辑
+    
+    def _extract_target_fields(self, question: str) -> List[str]:
+        """提取目标字段"""
+        fields = []
+        if "全链库存" in question:
+            fields.append("全链库存")
+        if "周转" in question or "DOI" in question:
+            fields.append("全链库存DOI")
+        if "SellOut" in question:
+            fields.append("SellOut")
+        if "SellIn" in question:
+            fields.append("SellIn")
+        return fields if fields else ["*"]
+    
+    def _generate_single_table_sql(self, question: str, table_name: str, target_fields: List[str]) -> str:
+        """生成单表SQL"""
+        # SELECT子句
+        if target_fields == ["*"]:
+            select_clause = "SELECT *"
+        else:
+            field_list = ", ".join(f"[{field}]" for field in target_fields)
+            select_clause = f"SELECT {field_list}"
+        
+        # FROM子句
+        from_clause = f"FROM [{table_name}]"
+        
+        # WHERE子句
+        where_conditions = []
+        
+        # 产品条件
+        product_conditions = self.fix_product_matching(question)
+        for field, condition in product_conditions.items():
+            if "LIKE" in condition:
+                pattern = condition.split("'")[1]
+                where_conditions.append(f"[{field}] LIKE '{pattern}'")
+        
+        # 时间条件
+        time_conditions = self.parse_time_conditions_correctly(question)
+        for field, value in time_conditions.items():
+            if isinstance(value, str):
+                where_conditions.append(f"[{field}] = '{value}'")
+            else:
+                where_conditions.append(f"[{field}] = {value}")
+        
+        # 组装SQL
+        sql_parts = [select_clause, from_clause]
+        if where_conditions:
+            sql_parts.append(f"WHERE {' AND '.join(where_conditions)}")
+        
+        return " ".join(sql_parts)
+
 # 导出主要类供其他模块使用
 __all__ = [
     'EnhancedRelationshipManager',
     'ScenarioBasedTermMapper', 
     'StructuredPromptBuilder',
     'MultiTableSQLValidator',
+    'QueryOptimizationPatch',
     'TableRelationship',
     'FieldBinding',
     'QueryScenario'

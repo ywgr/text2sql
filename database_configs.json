@@ -14,11 +14,19 @@
     "active": true
   },
   "sqlite_1": {
-    "name": "test",
+    "name": "lite",
     "type": "sqlite",
     "config": {
-      "file_path": "new_database.db"
+      "file_path": "FF_IDSS_Dev_FFsqlite.db"
     },
     "active": true
+  },
+  "lite": {
+    "name": "lite",
+    "type": "sqlite",
+    "config": {
+      "database": "FF_IDSS_Dev_FFsqlite.db"
+    },
+    "active": false
   }
 }
