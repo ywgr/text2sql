@@ -670,6 +670,171 @@ class Text2SQLSystemV23:
             self.term_mapper = None
             self.structured_prompt_builder = None
             self.multi_table_validator = None
+        
+        # 当前数据库连接
+        self.current_db = None
+
+    def connect_database(self, db_type: str, config: Dict) -> bool:
+        """连接数据库"""
+        try:
+            success, msg = self.db_manager.test_connection(db_type, config)
+            if success:
+                self.current_db = {"type": db_type, "config": config}
+                return True
+            else:
+                return False
+        except Exception as e:
+            logger.error(f"数据库连接失败: {e}")
+            return False
+    
+    def update_api_key(self, api_key: str):
+        """更新API密钥"""
+        self.deepseek_api_key = api_key
+        LocalConfig.DEEPSEEK_API_KEY = api_key
+        self.chroma_config["api_key"] = api_key
+        # 重新初始化Vanna实例
+        self.initialize_local_vanna()
+    
+    def generate_sql(self, question: str) -> str:
+        """生成SQL查询"""
+        try:
+            if not self.current_db:
+                return "-- 错误：请先连接数据库"
+            
+            # 使用增强版SQL生成
+            sql, message = self.generate_sql_enhanced(question, self.current_db["config"])
+            
+            if sql:
+                return sql
+            else:
+                return f"-- 生成失败：{message}"
+                
+        except Exception as e:
+            logger.error(f"SQL生成失败: {e}")
+            return f"-- 生成失败：{str(e)}"
+    
+    def execute_sql(self, sql: str) -> pd.DataFrame:
+        """执行SQL查询"""
+        try:
+            if not self.current_db:
+                raise Exception("未连接数据库")
+            
+            if self.current_db["type"] == "sqlite":
+                conn = sqlite3.connect(self.current_db["config"]["database"])
+                df = pd.read_sql_query(sql, conn)
+                conn.close()
+                return df
+            else:
+                raise Exception(f"暂不支持的数据库类型: {self.current_db['type']}")
+                
+        except Exception as e:
+            raise Exception(f"SQL执行失败: {str(e)}")
+    
+    def get_database_schema(self, db_config: Dict) -> str:
+        """获取数据库结构信息"""
+        try:
+            if self.current_db["type"] == "sqlite":
+                conn = sqlite3.connect(db_config["database"])
+                cursor = conn.cursor()
+                
+                # 获取所有表
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+                tables = cursor.fetchall()
+                
+                schema_info = "数据库表结构：\n"
+                for table in tables:
+                    table_name = table[0]
+                    cursor.execute(f"PRAGMA table_info({table_name})")
+                    columns = cursor.fetchall()
+                    
+                    schema_info += f"\n表名: {table_name}\n"
+                    for col in columns:
+                        schema_info += f"  - {col[1]} ({col[2]})\n"
+                
+                conn.close()
+                return schema_info
+            else:
+                return "暂不支持的数据库类型"
+                
+        except Exception as e:
+            return f"获取数据库结构失败: {str(e)}"
+    
+    def apply_business_rules(self, question: str) -> str:
+        """应用业务规则转换问题"""
+        processed_question = question
+        
+        # 应用业务规则进行术语转换
+        for keyword, rule in self.business_rules.items():
+            if keyword in processed_question:
+                processed_question = processed_question.replace(keyword, rule)
+        
+        return processed_question
+    
+    def clean_sql(self, sql: str) -> str:
+        """清理SQL语句"""
+        if not sql:
+            return ""
+        
+        # 移除多余的空白字符
+        sql = re.sub(r'\s+', ' ', sql.strip())
+        
+        # 移除可能的markdown代码块标记
+        sql = re.sub(r'```sql\s*', '', sql)
+        sql = re.sub(r'```\s*', '', sql)
+        
+        # 移除注释
+        sql = re.sub(r'--.*$', '', sql, flags=re.MULTILINE)
+        
+        return sql.strip()
+    
+    def call_deepseek_api(self, prompt: str) -> str:
+        """调用DeepSeek API"""
+        try:
+            import requests
+            
+            headers = {
+                'Authorization': f'Bearer {self.deepseek_api_key}',
+                'Content-Type': 'application/json'
+            }
+            
+            data = {
+                'model': 'deepseek-chat',
+                'messages': [
+                    {'role': 'user', 'content': prompt}
+                ],
+                'temperature': 0.1,
+                'max_tokens': 1000
+            }
+            
+            response = requests.post(
+                'https://api.deepseek.com/v1/chat/completions',
+                headers=headers,
+                json=data,
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                return result['choices'][0]['message']['content']
+            else:
+                return f"API调用失败: {response.status_code}"
+                
+        except Exception as e:
+            return f"API调用异常: {str(e)}"
+    
+    def _detect_multi_table_query(self, question: str, allowed_tables: set) -> bool:
+        """检测是否为多表查询"""
+        # 简单的多表查询检测逻辑
+        table_mentions = 0
+        for table in allowed_tables:
+            if table.lower() in question.lower():
+                table_mentions += 1
+        
+        # 如果提到多个表，或包含关联词汇，认为是多表查询
+        join_keywords = ['关联', '连接', 'join', '和', '以及', '的']
+        has_join_keywords = any(keyword in question.lower() for keyword in join_keywords)
+        
+        return table_mentions > 1 or has_join_keywords
 
     def load_database_configs(self) -> Dict:
         """加载数据库配置"""
@@ -6023,6 +6188,354 @@ def show_prompt_templates_page_enhanced():
                 json.dump(prompt_templates, f, ensure_ascii=False, indent=2)
             st.success(f"已添加模板: {new_template_name}")
             st.rerun()
+
+def show_data_analysis_page():
+    """数据分析页面"""
+    st.header("📊 数据分析")
+    
+    # 检查是否有系统实例
+    if 'text2sql_system' not in st.session_state:
+        st.warning("请先初始化系统")
+        return
+    
+    system = st.session_state.text2sql_system
+    
+    if not system.current_db:
+        st.warning("请先连接数据库")
+        return
+    
+    try:
+        # 获取数据库表列表
+        if system.current_db["type"] == "sqlite":
+            conn = sqlite3.connect(system.current_db["config"]["database"])
+            cursor = conn.cursor()
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+            tables = [row[0] for row in cursor.fetchall()]
+            conn.close()
+        else:
+            tables = []
+        
+        if not tables:
+            st.info("数据库中没有表")
+            return
+        
+        # 表选择
+        selected_table = st.selectbox("选择要分析的表:", tables)
+        
+        if selected_table:
+            # 显示表结构
+            st.subheader(f"📋 表结构: {selected_table}")
+            
+            conn = sqlite3.connect(system.current_db["config"]["database"])
+            cursor = conn.cursor()
+            cursor.execute(f"PRAGMA table_info({selected_table})")
+            columns_info = cursor.fetchall()
+            
+            # 显示列信息
+            columns_df = pd.DataFrame(columns_info, columns=['ID', '列名', '类型', '非空', '默认值', '主键'])
+            st.dataframe(columns_df, use_container_width=True)
+            
+            # 显示数据预览
+            st.subheader("📊 数据预览")
+            preview_df = pd.read_sql_query(f"SELECT * FROM {selected_table} LIMIT 10", conn)
+            st.dataframe(preview_df, use_container_width=True)
+            
+            # 数据统计
+            st.subheader("📈 数据统计")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                # 记录数
+                cursor.execute(f"SELECT COUNT(*) FROM {selected_table}")
+                row_count = cursor.fetchone()[0]
+                st.metric("总记录数", row_count)
+            
+            with col2:
+                # 列数
+                st.metric("列数", len(columns_info))
+            
+            conn.close()
+            
+            # 数值列分析
+            numeric_columns = []
+            for col in columns_info:
+                if 'INT' in col[2].upper() or 'REAL' in col[2].upper() or 'NUMERIC' in col[2].upper():
+                    numeric_columns.append(col[1])
+            
+            if numeric_columns:
+                st.subheader("📊 数值列分析")
+                selected_numeric_col = st.selectbox("选择数值列:", numeric_columns)
+                
+                if selected_numeric_col:
+                    conn = sqlite3.connect(system.current_db["config"]["database"])
+                    stats_df = pd.read_sql_query(f"""
+                        SELECT 
+                            COUNT({selected_numeric_col}) as 计数,
+                            AVG({selected_numeric_col}) as 平均值,
+                            MIN({selected_numeric_col}) as 最小值,
+                            MAX({selected_numeric_col}) as 最大值
+                        FROM {selected_table}
+                        WHERE {selected_numeric_col} IS NOT NULL
+                    """, conn)
+                    
+                    col1, col2, col3, col4 = st.columns(4)
+                    with col1:
+                        st.metric("计数", int(stats_df['计数'].iloc[0]))
+                    with col2:
+                        st.metric("平均值", f"{stats_df['平均值'].iloc[0]:.2f}")
+                    with col3:
+                        st.metric("最小值", stats_df['最小值'].iloc[0])
+                    with col4:
+                        st.metric("最大值", stats_df['最大值'].iloc[0])
+                    
+                    conn.close()
+    
+    except Exception as e:
+        st.error(f"数据分析失败: {str(e)}")
+
+def main():
+    """主函数"""
+    st.set_page_config(
+        page_title="TEXT2SQL系统 V2.3 增强版",
+        page_icon="🔍",
+        layout="wide"
+    )
+    
+    st.title("🔍 TEXT2SQL系统 V2.3 - 增强优化版")
+    
+    # 初始化系统
+    if 'text2sql_system' not in st.session_state:
+        try:
+            st.session_state.text2sql_system = Text2SQLSystemV23()
+        except Exception as e:
+            st.error(f"系统初始化失败: {str(e)}")
+            st.stop()
+    
+    system = st.session_state.text2sql_system
+    
+    # 侧边栏配置
+    with st.sidebar:
+        st.header("🛠️ 系统配置")
+        
+        # 数据库配置
+        st.subheader("📊 数据库设置")
+        db_type = st.selectbox("数据库类型", ["sqlite", "mysql"], key="db_type_select")
+        
+        if db_type == "sqlite":
+            db_file = st.text_input("数据库文件", value="test_database.db", key="sqlite_file")
+            if st.button("连接SQLite", key="connect_sqlite"):
+                try:
+                    success = system.connect_database("sqlite", {"database": db_file})
+                    if success:
+                        st.success("SQLite数据库连接成功！")
+                    else:
+                        st.error("SQLite数据库连接失败")
+                except Exception as e:
+                    st.error(f"连接失败: {str(e)}")
+        
+        elif db_type == "mysql":
+            st.write("MySQL配置:")
+            mysql_host = st.text_input("主机", value="localhost", key="mysql_host")
+            mysql_port = st.number_input("端口", value=3306, key="mysql_port")
+            mysql_user = st.text_input("用户名", key="mysql_user")
+            mysql_password = st.text_input("密码", type="password", key="mysql_password")
+            mysql_database = st.text_input("数据库名", key="mysql_database")
+            
+            if st.button("连接MySQL", key="connect_mysql"):
+                config = {
+                    "host": mysql_host,
+                    "port": mysql_port,
+                    "user": mysql_user,
+                    "password": mysql_password,
+                    "database": mysql_database
+                }
+                try:
+                    success = system.connect_database("mysql", config)
+                    if success:
+                        st.success("MySQL数据库连接成功！")
+                    else:
+                        st.error("MySQL数据库连接失败")
+                except Exception as e:
+                    st.error(f"连接失败: {str(e)}")
+        
+        # API配置
+        st.subheader("🔑 API设置")
+        api_key = st.text_input("DeepSeek API Key", type="password", key="api_key_input")
+        if api_key:
+            if st.button("更新API Key", key="update_api"):
+                system.update_api_key(api_key)
+                st.success("API Key已更新")
+    
+    # 主界面标签页
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        "💬 智能查询", 
+        "📊 数据分析", 
+        "🔧 产品管理", 
+        "📝 规则管理", 
+        "⚙️ 系统管理"
+    ])
+    
+    with tab1:
+        st.header("💬 智能查询")
+        
+        # 查询输入
+        question = st.text_area(
+            "请输入您的查询问题：", 
+            height=100, 
+            placeholder="例如：查询所有510S产品的信息",
+            key="query_input"
+        )
+        
+        col1, col2, col3 = st.columns([2, 1, 1])
+        
+        with col1:
+            if st.button("🔍 生成SQL", type="primary", key="generate_sql"):
+                if question.strip():
+                    with st.spinner("正在生成SQL..."):
+                        try:
+                            sql = system.generate_sql(question)
+                            st.session_state.generated_sql = sql
+                            st.success("SQL生成成功！")
+                        except Exception as e:
+                            st.error(f"SQL生成失败: {str(e)}")
+                else:
+                    st.warning("请输入查询问题")
+        
+        with col2:
+            if st.button("🧹 清空", key="clear_query"):
+                if 'generated_sql' in st.session_state:
+                    del st.session_state.generated_sql
+                st.rerun()
+        
+        with col3:
+            if st.button("📋 示例", key="show_examples"):
+                st.session_state.show_examples = not st.session_state.get('show_examples', False)
+        
+        # 显示示例查询
+        if st.session_state.get('show_examples', False):
+            st.subheader("📋 查询示例")
+            examples = [
+                "查询所有510S产品的信息",
+                "统计每个产品系列的数量",
+                "查找Geek系列的所有产品",
+                "显示拯救者系列的产品详情"
+            ]
+            
+            for i, example in enumerate(examples):
+                if st.button(f"📝 {example}", key=f"example_{i}"):
+                    st.session_state.query_input = example
+                    st.rerun()
+        
+        # 显示生成的SQL
+        if 'generated_sql' in st.session_state:
+            st.subheader("📝 生成的SQL:")
+            sql_to_execute = st.text_area(
+                "SQL查询:", 
+                value=st.session_state.generated_sql, 
+                height=150,
+                key="sql_editor"
+            )
+            
+            col1, col2 = st.columns([1, 1])
+            
+            with col1:
+                if st.button("▶️ 执行查询", type="primary", key="execute_sql"):
+                    if system.current_db:
+                        try:
+                            with st.spinner("正在执行查询..."):
+                                df = system.execute_sql(sql_to_execute)
+                                st.success(f"查询成功！返回 {len(df)} 条记录")
+                                st.dataframe(df, use_container_width=True)
+                                
+                                # 保存查询历史
+                                if 'query_history' not in st.session_state:
+                                    st.session_state.query_history = []
+                                st.session_state.query_history.append({
+                                    'question': question,
+                                    'sql': sql_to_execute,
+                                    'timestamp': time.strftime('%Y-%m-%d %H:%M:%S'),
+                                    'result_count': len(df)
+                                })
+                        except Exception as e:
+                            st.error(f"查询失败: {str(e)}")
+                    else:
+                        st.warning("请先连接数据库")
+            
+            with col2:
+                if st.button("💾 保存SQL", key="save_sql"):
+                    # 这里可以添加保存SQL的逻辑
+                    st.info("SQL保存功能开发中...")
+    
+    with tab2:
+        st.header("📊 数据分析")
+        show_data_analysis_page()
+    
+    with tab3:
+        st.header("🔧 产品管理")
+        show_product_management_page_enhanced()
+    
+    with tab4:
+        st.header("📝 规则管理")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("📋 业务规则")
+            show_business_rules_page_enhanced()
+        
+        with col2:
+            st.subheader("🔧 提示词模板")
+            show_prompt_templates_page_enhanced()
+    
+    with tab5:
+        st.header("⚙️ 系统管理")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("📈 性能指标")
+            
+            # 显示系统状态
+            if hasattr(system, 'sql_cache'):
+                cache_size = len(system.sql_cache.cache) if hasattr(system.sql_cache, 'cache') else 0
+                st.metric("SQL缓存大小", f"{cache_size}/100")
+            
+            if 'query_history' in st.session_state:
+                st.metric("查询历史", len(st.session_state.query_history))
+            
+            # 数据库状态
+            if system.current_db:
+                st.success(f"✅ 已连接: {system.current_db.get('type', 'Unknown')}")
+            else:
+                st.warning("❌ 未连接数据库")
+        
+        with col2:
+            st.subheader("🔧 系统操作")
+            
+            if st.button("🧹 清空缓存", key="clear_cache"):
+                if hasattr(system, 'sql_cache'):
+                    system.sql_cache.clear()
+                st.success("缓存已清空")
+                st.rerun()
+            
+            if st.button("📜 查看查询历史", key="show_history"):
+                if 'query_history' in st.session_state and st.session_state.query_history:
+                    st.subheader("📜 查询历史")
+                    history_df = pd.DataFrame(st.session_state.query_history)
+                    st.dataframe(history_df, use_container_width=True)
+                else:
+                    st.info("暂无查询历史")
+            
+            if st.button("🔄 重新初始化系统", key="reinit_system"):
+                try:
+                    # 清除session state中的系统实例
+                    if 'text2sql_system' in st.session_state:
+                        del st.session_state.text2sql_system
+                    st.success("系统将在下次刷新时重新初始化")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"重新初始化失败: {str(e)}")
 
 if __name__ == "__main__":
     # 可以选择运行测试或主程序
