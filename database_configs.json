@@ -1,0 +1,24 @@
+{
+  "default_mssql": {
+    "name": "FF_IDSS_Dev_FF",
+    "type": "mssql",
+    "config": {
+      "server": "10.97.34.39",
+      "database": "FF_IDSS_Dev_FF",
+      "username": "FF_User",
+      "password": "Grape!0808",
+      "driver": "ODBC Driver 18 for SQL Server",
+      "encrypt": "no",
+      "trust_server_certificate": "yes"
+    },
+    "active": true
+  },
+  "sqlite_1": {
+    "name": "test",
+    "type": "sqlite",
+    "config": {
+      "file_path": "new_database.db"
+    },
+    "active": true
+  }
+}

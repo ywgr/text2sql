@@ -1,0 +1,5 @@
+{
+  "sql_generation": "你是一个SQL专家。根据以下数据库结构和用户问题，生成准确的SQL查询语句。\n\n数据库结构：\n{schema_info}\n\n业务规则：\n{business_rules}\n\n用户问题：{question}\n\n重要要求：\n1. 只返回SQL语句，不要其他解释\n2. 确保所有字段名都存在于数据库表中\n3. 如果需要多表查询，使用正确的JOIN语句\n4. 使用SQLite语法\n5. 应用业务规则进行术语转换\n\nSQL语句：",
+  "sql_verification": "你是一个SQL验证专家。请检查以下SQL语句是否正确并符合用户需求。\n\n数据库结构：\n{schema_info}\n\n业务规则：\n{business_rules}\n\n用户问题：{question}\n生成的SQL：{sql}\n\n请检查：\n1. SQL语法是否正确\n2. 表名和字段名是否存在\n3. 是否正确回答了用户问题\n4. JOIN关系是否正确\n5. WHERE条件是否合理\n6. 是否正确应用了业务规则\n\n如果SQL完全正确，请回答\"VALID\"\n如果有问题，请提供修正后的SQL语句，格式如下：\nINVALID\n修正后的SQL语句\n\n回答：",
+  "fallback_generation": "你是一个SQL专家。根据以下数据库结构和用户问题，生成准确的SQL查询语句。\n\n数据库结构：\n{schema_info}\n\n业务规则：\n{business_rules}\n\n用户问题：{question}\n\n重要要求：\n1. 只返回SQL语句，不要其他解释\n2. 确保所有字段名都存在于数据库表中\n3. 如果需要多表查询，使用正确的JOIN语句\n4. 使用SQLite语法\n5. 表名：student, course, score\n6. 常用字段：name, class, gender, course_name, score\n7. 严格应用业务规则进行转换\n\n常见查询模式：\n- 显示表: SELECT * FROM table_name\n- 学生信息: SELECT * FROM student\n- 成绩查询: SELECT s.name, sc.score FROM student s JOIN score sc ON s.name = sc.name WHERE sc.course_name = '科目'\n- 统计查询: SELECT class, COUNT(*) FROM student GROUP BY class\n\nSQL语句："
+}
