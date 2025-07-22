@@ -522,17 +522,41 @@ class SmartSQLGenerator:
         return conditions
     
     def _generate_multi_table_sql(self, question: str) -> str:
-        """生成多表SQL（保留原有逻辑作为后备）"""
-        # 这里可以调用原有的多表查询逻辑
-        # 为了简化，这里返回一个基本的多表查询
-        return f"""
-        SELECT d.[全链库存] 
-        FROM [dtsupply_summary] AS d 
-        JOIN [CONPD] AS c ON d.[Roadmap Family] = c.[Roadmap Family] AND d.[Group] = c.[Group] 
-        WHERE c.[Roadmap Family] LIKE '%天逸510S%' 
-        AND c.[Group] LIKE '%天逸510S_%' 
-        AND d.[财月] = '7月'
-        """.strip()
+        """生成多表SQL，强制JOIN只能用关系知识库（table_knowledge['relationships']）"""
+        # 1. 简单从问题中提取所有表名（可根据实际需求优化）
+        all_tables = set(self.table_knowledge.keys())
+        used_tables = [table for table in all_tables if table in question]
+        if len(used_tables) < 2:
+            # 如果问题中没有明确多个表，默认用所有有关系的表
+            # 这里可根据实际业务优化
+            used_tables = list(all_tables)
+
+        # 2. 收集所有关系
+        relationships = []
+        for table, info in self.table_knowledge.items():
+            if 'relationships' in info:
+                relationships.extend(info['relationships'])
+
+        # 3. 只允许用 relationships 里定义的表和字段做 JOIN
+        join_clauses = []
+        from_table = None
+        joined_tables = set()
+        for rel in relationships:
+            t1, t2 = rel['table1'], rel['table2']
+            f1, f2 = rel['field1'], rel['field2']
+            if t1 in used_tables and t2 in used_tables:
+                if not from_table:
+                    from_table = t1
+                    joined_tables.add(t1)
+                if t2 not in joined_tables:
+                    join_clauses.append(f"JOIN [{t2}] ON [{t1}].[{f1}] = [{t2}].[{f2}]")
+                    joined_tables.add(t2)
+        if not from_table or not join_clauses:
+            return "-- ERROR: 无法根据关系知识库自动生成多表JOIN，请检查关系定义或问题描述"
+
+        # 4. 组装SQL（这里只做简单SELECT *，可根据实际需求扩展）
+        sql = f"SELECT * FROM [{from_table}] " + " ".join(join_clauses)
+        return sql
 
 def create_evaluation_interface():
     """创建SQL评价界面"""
