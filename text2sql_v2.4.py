@@ -27,6 +27,7 @@ import logging
 import os
 import traceback
 import requests
+from datetime import datetime
 from vanna.chromadb import ChromaDB_VectorStore
 from vanna.deepseek import DeepSeekChat
 import pyodbc
@@ -34,39 +35,27 @@ import sqlalchemy
 from sqlalchemy import create_engine, text, inspect
 from collections import deque
 from difflib import get_close_matches
+import importlib.util
+import sys
+import ast
 
-# 导入V2.2核心优化模块和V2.3多表查询增强
+# V2.3 终极修复：使用内置的、最新的核心组件，不再依赖外部文件
+from dataclasses import dataclass
+from typing import Dict, List
+
+# V2.3 终极修复：多表增强功能也暂时移除动态加载，避免潜在问题
+MULTI_TABLE_ENHANCED = False
+
+# 动态导入多表增强相关类
 try:
-    # 注意：实际文件名是 text2sql_v2.2_core.py，但Python导入时需要用下划线
-    import importlib.util
-    import sys
-    
-    # 动态导入 text2sql_v2.2_core.py
-    spec = importlib.util.spec_from_file_location("text2sql_v2_2_core", "text2sql_v2.2_core.py")
-    if spec and spec.loader:
-        text2sql_v2_2_core = importlib.util.module_from_spec(spec)
-        sys.modules["text2sql_v2_2_core"] = text2sql_v2_2_core
-        spec.loader.exec_module(text2sql_v2_2_core)
-        
-        # 导入所需的类和函数
-        ValidationResult = text2sql_v2_2_core.ValidationResult
-        SQLGenerationContext = text2sql_v2_2_core.SQLGenerationContext
-        SQLValidator = text2sql_v2_2_core.SQLValidator
-        EnhancedPromptBuilder = text2sql_v2_2_core.EnhancedPromptBuilder
-        SQLCache = text2sql_v2_2_core.SQLCache
-        UserFriendlyErrorHandler = text2sql_v2_2_core.UserFriendlyErrorHandler
-        monitor_performance = text2sql_v2_2_core.monitor_performance
-    else:
-        raise ImportError("无法加载 text2sql_v2.2_core.py")
-    
-    # 动态导入 text2sql_v2.3_multi_table_enhanced.py
-    spec2 = importlib.util.spec_from_file_location("text2sql_v2_3_multi_table_enhanced", "text2sql_v2.3_multi_table_enhanced.py")
+    spec2 = importlib.util.spec_from_file_location(
+        "text2sql_v2_3_multi_table_enhanced", "text2sql_v2.3_multi_table_enhanced.py"
+    )
     if spec2 and spec2.loader:
         text2sql_v2_3_multi_table_enhanced = importlib.util.module_from_spec(spec2)
         sys.modules["text2sql_v2_3_multi_table_enhanced"] = text2sql_v2_3_multi_table_enhanced
         spec2.loader.exec_module(text2sql_v2_3_multi_table_enhanced)
-        
-        # 导入所需的类和函数
+
         EnhancedRelationshipManager = text2sql_v2_3_multi_table_enhanced.EnhancedRelationshipManager
         ScenarioBasedTermMapper = text2sql_v2_3_multi_table_enhanced.ScenarioBasedTermMapper
         StructuredPromptBuilder = text2sql_v2_3_multi_table_enhanced.StructuredPromptBuilder
@@ -74,140 +63,761 @@ try:
         TableRelationship = text2sql_v2_3_multi_table_enhanced.TableRelationship
         FieldBinding = text2sql_v2_3_multi_table_enhanced.FieldBinding
         QueryScenario = text2sql_v2_3_multi_table_enhanced.QueryScenario
+        MULTI_TABLE_ENHANCED = True
     else:
-        raise ImportError("无法加载 text2sql_v2.3_multi_table_enhanced.py")
-    
-    MULTI_TABLE_ENHANCED = True
-except ImportError:
-    # 如果V2.2核心模块不存在，使用内置的简化版本
-    from dataclasses import dataclass
-    from typing import Dict, List
-    
-    @dataclass
-    class ValidationResult:
-        is_valid: bool
-        corrected_sql: str
-        issues: List[str]
-        suggestions: List[str]
-        performance_score: float = 0.0
-    
-    @dataclass
-    class SQLGenerationContext:
-        question: str
-        processed_question: str
-        schema_info: str
-        table_knowledge: Dict
-        product_knowledge: Dict
-        business_rules: Dict
-        allowed_tables: set
-        db_config: Dict
-    
-    class SQLValidator:
-        def __init__(self, table_knowledge: Dict, business_rules: Dict):
-            self.table_knowledge = table_knowledge
-            self.business_rules = business_rules
+        MULTI_TABLE_ENHANCED = False
+except Exception as e:
+    MULTI_TABLE_ENHANCED = False
+
+@dataclass
+class ValidationResult:
+    is_valid: bool
+    corrected_sql: str
+    issues: List[str]
+    suggestions: List[str]
+    performance_score: float = 0.0
+
+@dataclass
+class SQLGenerationContext:
+    question: str
+    processed_question: str
+    schema_info: str
+    table_knowledge: Dict
+    product_knowledge: Dict
+    business_rules: Dict
+    allowed_tables: set
+    db_config: Dict
+
+class SQLValidator:
+    """SQL验证器类，支持字段名模糊匹配"""
+    def __init__(self, table_knowledge: Dict, business_rules: Dict):
+        self.table_knowledge = table_knowledge
+        self.business_rules = business_rules
+        self.field_cache = {}
+        self.relationships = self._load_relationships()
         
-        def validate_comprehensive(self, sql: str, context) -> ValidationResult:
-            # 简化版验证
-            issues = []
-            if not sql or sql.strip() == "":
-                issues.append("ERROR: SQL为空")
-                return ValidationResult(False, sql, issues, [], 0.0)
-            
-            # 基础验证
-            if not re.search(r'\bSELECT\b', sql, re.IGNORECASE):
-                issues.append("ERROR: 缺少SELECT关键字")
-            
-            is_valid = len([i for i in issues if i.startswith("ERROR")]) == 0
-            return ValidationResult(is_valid, sql, issues, [], 80.0)
+    def _extract_sql_parts(self, sql: str) -> Dict[str, str]:
+        """提取SQL语句的各个部分"""
+        parts = {}
+        # 提取SELECT部分
+        select_match = re.search(r'SELECT\s+(.+?)\s+FROM', sql, re.IGNORECASE | re.DOTALL)
+        parts['select'] = select_match.group(1) if select_match else ""
+        
+        # 提取FROM和JOIN部分
+        from_match = re.search(r'FROM\s+(.+?)(?:WHERE|ORDER\s+BY|GROUP\s+BY|$)', 
+                             sql, re.IGNORECASE | re.DOTALL)
+        parts['from'] = from_match.group(1) if from_match else ""
+        
+        # 提取WHERE条件
+        where_match = re.search(r'WHERE\s+(.+?)(?:ORDER\s+BY|GROUP\s+BY|$)', 
+                              sql, re.IGNORECASE | re.DOTALL)
+        parts['where'] = where_match.group(1) if where_match else ""
+        
+        # 提取可能的GROUP BY
+        group_match = re.search(r'GROUP\s+BY\s+(.+?)(?:ORDER\s+BY|$)', 
+                              sql, re.IGNORECASE | re.DOTALL)
+        parts['group_by'] = group_match.group(1) if group_match else ""
+        
+        # 提取可能的ORDER BY
+        order_match = re.search(r'ORDER\s+BY\s+(.+?)$', sql, re.IGNORECASE | re.DOTALL)
+        parts['order_by'] = order_match.group(1) if order_match else ""
+        
+        return parts
+        
+    def _extract_query_subject(self, sql_parts: Dict[str, str]) -> List[str]:
+        """提取查询主题条件"""
+        conditions = []
+        if 'where' in sql_parts and sql_parts['where']:
+            # 分割WHERE条件
+            where_conditions = sql_parts['where'].split('AND')
+            # 过滤掉通用条件（如时间条件）
+            for cond in where_conditions:
+                cond = cond.strip()
+                # 如果条件不是时间相关的，认为是查询主题
+                if not re.search(r'财月|财周|自然年|GETDATE\(\)', cond, re.IGNORECASE):
+                    conditions.append(cond)
+        return conditions
+
+    def _load_relationships(self) -> Dict:
+        """从关系表知识库加载表关联关系定义"""
+        try:
+            with open("table_relationships.json", 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            logger.error(f"加载关联关系知识库失败: {e}")
+            return {"relationships": []}
+        self.relationships = self._load_relationships()
     
-    class EnhancedPromptBuilder:
-        def build_comprehensive_prompt(self, context) -> str:
-            return f"""你是一个SQL专家。根据以下信息生成准确的SQL查询语句。
+    def find_table_path(self, table1: str, table2: str) -> List[Dict]:
+        """找到两个表之间的关联路径
+        Args:
+            table1: 起始表
+            table2: 目标表
+        Returns:
+            包含关联关系的列表，形成一条从table1到table2的路径
+        """
+        def normalize_table(table):
+            return table.replace('[', '').replace(']', '').split('.')[-1]
 
-数据库结构：
-{context.schema_info}
+        table1 = normalize_table(table1)
+        table2 = normalize_table(table2)
 
-表结构知识库：
+        # 构建表关系图
+        graph = {}
+        for rel in self.relationships["relationships"]:
+            t1 = normalize_table(rel["table1"])
+            t2 = normalize_table(rel["table2"])
+            if t1 not in graph:
+                graph[t1] = []
+            if t2 not in graph:
+                graph[t2] = []
+            graph[t1].append({"table": t2, "relationship": rel})
+            graph[t2].append({"table": t1, "relationship": rel})
+
+        # BFS搜索路径
+        visited = {table1: []}
+        queue = [(table1, [])]
+        
+        while queue:
+            current_table, path = queue.pop(0)
+            if current_table == table2:
+                return path
+                
+            if current_table in graph:
+                for neighbor in graph[current_table]:
+                    next_table = neighbor["table"]
+                    if next_table not in visited:
+                        new_path = path + [neighbor["relationship"]]
+                        visited[next_table] = new_path
+                        queue.append((next_table, new_path))
+        
+        return []
+
+    def verify_and_fix_join(self, join_clause: str, query_subject: List[str] = None) -> Tuple[bool, str, str]:
+        """验证并修正JOIN语句，同时确保保留查询主题相关的表"""
+        # 解析JOIN子句
+        join_match = re.search(r'(?:FROM|JOIN)\s+\[?([^\]\s]+)\]?(?:\s+([^\s]+))?\s+(?:ON\s+(.+))?', 
+                             join_clause, re.IGNORECASE)
+        if not join_match:
+            return False, "无法解析JOIN语句", ""
+            
+        # 获取表名和别名
+        table_name = join_match.group(1)
+        table_alias = join_match.group(2) if join_match.group(2) else ""
+        join_condition = join_match.group(3) if join_match.group(3) else ""
+        
+        # 如果这个表涉及查询主题，确保保留
+        if query_subject:
+            for condition in query_subject:
+                if table_alias and table_alias in condition:
+                    return True, "", join_clause  # 保留涉及查询主题的表关联
+        
+        # 提取表名和关联条件
+        joined_table = join_match.group(1)
+        table_alias = join_match.group(2) if join_match.group(2) else ""
+        join_condition = join_match.group(3) if join_match.group(3) else ""
+
+        # 解析关联条件中的表和字段
+        condition_match = re.search(r'([^.]+)\.([^=\s]+)\s*=\s*([^.]+)\.([^=\s]+)', 
+                                  join_condition)
+        if not condition_match:
+            return False, "无法解析关联条件", ""
+
+        t1, f1, t2, f2 = condition_match.groups()
+        t1 = t1.strip('[]')
+        t2 = t2.strip('[]')
+        f1 = f1.strip('[]')
+        f2 = f2.strip('[]')
+
+        # 在关系知识库中查找匹配的关系
+        for rel in self.relationships.get("relationships", []):
+            # 标准化表名和字段名
+            rel_t1 = rel["table1"].split('.')[-1]
+            rel_t2 = rel["table2"].split('.')[-1]
+            rel_f1 = rel["field1"]
+            rel_f2 = rel["field2"]
+
+            # 检查是否匹配关系定义（考虑字段顺序）
+            if ((t1 == rel_t1 and t2 == rel_t2 and f1 == rel_f1 and f2 == rel_f2) or
+                (t1 == rel_t2 and t2 == rel_t1 and f1 == rel_f2 and f2 == rel_f1)):
+                return True, "", join_clause
+
+            # 如果找到表匹配但字段不匹配，返回正确的关联方式
+            if (t1 == rel_t1 and t2 == rel_t2) or (t1 == rel_t2 and t2 == rel_t1):
+                if t1 == rel_t1:
+                    correct_condition = f"{t1}.{rel_f1} = {t2}.{rel_f2}"
+                else:
+                    correct_condition = f"{t1}.{rel_f2} = {t2}.{rel_f1}"
+                
+                correct_join = join_clause.replace(join_condition, correct_condition)
+                return False, f"关联字段不正确，应使用: {correct_condition}", correct_join
+
+        return False, f"未找到表 {t1} 和 {t2} 之间的关联关系定义", ""
+
+    def validate_comprehensive(self, sql: str, context) -> ValidationResult:
+        import logging
+        logger = logging.getLogger(__name__)
+        issues = []
+        suggestions = []
+        corrected_sql = sql
+        if not sql or sql.strip() == "":
+            issues.append("ERROR: SQL为空")
+            return ValidationResult(False, sql, issues, [], 0.0)
+        logger.info(f"AI LLM 开始验证 SQL 及关系表 ...")
+        # 构建关系表信息
+        relationships_info = []
+        for rel in self.relationships.get("relationships", []):
+            relationships_info.append(f"{rel['table1']}.{rel['field1']} <-> {rel['table2']}.{rel['field2']} ({rel['description']})")
+        prompt = f"""
+你是SQL表关系校验专家，请结构化分析以下SQL的多表JOIN关系是否与给定的表关系定义（relationships）一致，并指出任何缺失、冗余或不一致之处，并建议如何优化SQL和关系表。
+
+原始SQL：
+{sql}
+
+表关系定义（relationships）：
+{relationships_info}
+
+请逐条比对SQL中的JOIN条件与relationships，指出：
+1. 哪些JOIN在relationships中有定义，哪些没有；
+2. relationships中有但SQL未用到的关联；
+3. 是否有冗余或重复；
+4. 最终结论：SQL的表连接关系是否完全符合relationships，若不符合请说明原因。
+5. 如有冗余或不规范，请给出优化建议。
+
+请用结构化、分点的方式输出分析过程和结论。
+"""
+        ai_response = self.call_deepseek_api(prompt)
+        logger.info(f"AI大模型校验结果: {ai_response}")
+        # 只根据AI输出判断
+        is_valid = ("合法" in ai_response and "不合法" not in ai_response) or ("完全符合" in ai_response and "不符合" not in ai_response)
+        suggestions.append(ai_response)
+        return ValidationResult(is_valid, corrected_sql, issues, suggestions, 100.0 if is_valid else 0.0)
+
+    def _find_relationship(self, main_table: str, joined_table: str) -> List[dict]:
+        """从知识库中查找两个表之间的关联关系定义"""
+        valid_relations = []
+        
+        for _, info in self.table_knowledge.items():
+            if 'relationships' in info and isinstance(info['relationships'], list):
+                for rel in info['relationships']:
+                    if not isinstance(rel, dict):
+                        continue
+                        
+                    from_table = rel.get('from_table', '').split('.')[-1].replace('[', '').replace(']', '')
+                    to_table = rel.get('to_table', '').split('.')[-1].replace('[', '').replace(']', '')
+                    
+                    if ((from_table == main_table and to_table == joined_table) or
+                        (to_table == main_table and from_table == joined_table)):
+                        valid_relations.append(rel)
+        
+        return valid_relations
+        
+        # 如果没有JOIN子句但使用了多个表的字段，报错
+        if not joins:
+            used_tables = set()
+            for field in fields:
+                parts = field.split('.')
+                if len(parts) > 1:
+                    table_name = clean_field_name(parts[0])
+                    used_tables.add(table_name)
+            
+            if len(used_tables) > 1:
+                issues.append("ERROR: 使用了多个表的字段但没有使用JOIN进行关联")
+                return ValidationResult(False, sql, issues, [], 0.0)
+        
+        # 验证每个JOIN
+        for join_match in joins:
+            joined_table = clean_field_name(join_match.group(1))
+            join_condition = join_match.group(2).strip()
+            
+            # 使用新的关联关系验证方法
+            is_valid, message = self.validate_join_relationship(main_table, joined_table, join_condition)
+            if not is_valid:
+                issues.append(f"ERROR: {message}")
+            
+            if not relation_found:
+                issues.append(
+                    f"ERROR: 表 {main_table} 和 {joined_table} 之间的关联关系在知识库中未定义，"
+                    "禁止使用未在知识库中定义的关联关系"
+                )
+                continue
+            
+            # 验证JOIN条件
+            if valid_relations:
+                condition_matched = False
+                for rel in valid_relations:
+                    if self._match_join_conditions(join_condition, rel['join_condition']):
+                        condition_matched = True
+                        break
+                
+                if not condition_matched:
+                    issues.append(
+                        f"ERROR: 表 {main_table} 和 {joined_table} 的关联条件不正确\n"
+                        f"当前条件: {join_condition}\n"
+                        f"知识库中定义的条件:\n" +
+                        "\n".join(f"- {rel['join_condition']}" for rel in valid_relations)
+                    )
+            # 提取所有JOIN语句
+            join_pattern = r'\b(?:INNER|LEFT|RIGHT|FULL)\s+(?:OUTER\s+)?JOIN\s+(?:\[[^\]]+\]\.\[[^\]]+\]\.\[)?([^\]\s]+)(?:\])?\s+.*?\bON\b\s+(.*?)(?:\bWHERE\b|\bGROUP\s+BY\b|\bORDER\s+BY\b|$)'
+        joins = re.finditer(join_pattern, sql, re.IGNORECASE | re.DOTALL)
+        
+        for join_match in joins:
+            joined_table = join_match.group(1)
+            join_condition = join_match.group(2).strip()
+            
+            # 获取所有在查询中使用的表
+            all_tables = []
+            
+            # 提取FROM子句中的表
+            from_pattern = r'\bFROM\s+(?:\[[^\]]+\]\.\[[^\]]+\]\.\[)?([^\]\s]+)(?:\])?'
+            from_match = re.search(from_pattern, sql, re.IGNORECASE)
+            if from_match:
+                main_table = from_match.group(1).replace('[', '').replace(']', '').split('.')[-1]
+                all_tables.append(main_table)
+            
+            # 提取JOIN子句中的表
+            joined_table = joined_table.replace('[', '').replace(']', '').split('.')[-1]
+            all_tables.append(joined_table)
+            
+            # 验证所有表是否都存在于知识库中
+            for table in all_tables:
+                if table not in self.table_knowledge:
+                    issues.append(f"ERROR: 表 {table} 在知识库中未定义")
+                    continue
+            
+            # 如果所有表都存在，检查它们之间的关联关系
+            if len([i for i in issues if i.startswith("ERROR")]) == 0:
+                # 获取所有可用的关联关系
+                relationships = []
+                for _, info in self.table_knowledge.items():
+                    if 'relationships' in info:
+                        relationships.extend(info['relationships'])
+                
+                # 检查当前的JOIN是否使用了已定义的关联关系
+                relation_found = False
+                for rel in relationships:
+                    if not rel:  # 跳过空的关联关系
+                        continue
+                        
+                    # 获取关联关系中定义的表
+                    from_table = rel.get('from_table', '').replace('[', '').replace(']', '').split('.')[-1]
+                    to_table = rel.get('to_table', '').replace('[', '').replace(']', '').split('.')[-1]
+                    
+                    # 检查是否匹配当前JOIN的表
+                    tables_match = (
+                        (from_table == main_table and to_table == joined_table) or
+                        (from_table == joined_table and to_table == main_table)
+                    )
+                    
+                    if tables_match:
+                        relation_found = True
+                        # 验证JOIN条件是否匹配知识库中的定义
+                        if 'join_condition' in rel:
+                            expected_condition = rel['join_condition']
+                            if not self._match_join_conditions(join_condition, expected_condition):
+                                issues.append(
+                                    f"ERROR: 表 {main_table} 和 {joined_table} 的关联条件不正确\n"
+                                    f"当前条件: {join_condition}\n"
+                                    f"知识库中定义的条件: {expected_condition}"
+                                )
+                        break
+                
+                if not relation_found:
+                    issues.append(
+                        f"ERROR: 表 {main_table} 和 {joined_table} 之间的关联关系在知识库中未定义\n"
+                        f"请检查表结构知识库中的relationships配置"
+                    )
+            
+            # 此处不需要重复检查relation_found，因为已经在上面检查过了
+        
+        is_valid = len([i for i in issues if i.startswith("ERROR")]) == 0
+        return ValidationResult(is_valid, sql, issues, [], 80.0)
+    
+    def _match_join_conditions(self, actual_condition: str, expected_condition: str) -> bool:
+        """比较实际的JOIN条件与期望的JOIN条件是否匹配"""
+        def normalize_condition(cond):
+            # 移除所有空格和换行
+            cond = ' '.join(cond.split())
+            # 转换为小写
+            cond = cond.lower()
+            # 移除 [数据库].[schema]. 前缀
+            cond = re.sub(r'\[[^\]]+\]\.\[[^\]]+\]\.', '', cond)
+            # 移除方括号
+            cond = cond.replace('[', '').replace(']', '')
+            # 标准化操作符周围的空格
+            cond = re.sub(r'\s*(=|>=|<=|<>|>|<|\blike\b|\bin\b|\bexists\b)\s*', r' \1 ', cond)
+            # 标准化AND/OR
+            cond = re.sub(r'\s+and\s+', ' and ', cond)
+            cond = re.sub(r'\s+or\s+', ' or ', cond)
+            return cond.strip()
+
+        def parse_join_condition(cond):
+            # 标准化条件
+            norm_cond = normalize_condition(cond)
+            
+            # 分解多个条件（处理AND/OR）
+            conditions = []
+            current = []
+            tokens = norm_cond.split()
+            for token in tokens:
+                if token.lower() in ('and', 'or'):
+                    if current:
+                        conditions.append(' '.join(current))
+                        current = []
+                else:
+                    current.append(token)
+            if current:
+                conditions.append(' '.join(current))
+            
+            return sorted(conditions)  # 排序以确保顺序无关
+
+        try:
+            actual_conditions = parse_join_condition(actual_condition)
+            expected_conditions = parse_join_condition(expected_condition)
+            
+            if len(actual_conditions) != len(expected_conditions):
+                return False
+                
+            for act, exp in zip(actual_conditions, expected_conditions):
+                if not self._match_single_condition(act, exp):
+                    return False
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"关联条件匹配失败: {e}")
+            return False
+            
+    def _sync_relationships_from_table_knowledge(self) -> Dict:
+        """从表结构知识库同步关联关系"""
+        relationships = []
+        
+        # 遍历表结构知识库中的所有表
+        for table_name, table_info in self.table_knowledge.items():
+            if 'relationships' in table_info:
+                for rel in table_info['relationships']:
+                    if isinstance(rel, dict):
+                        try:
+                            # 构造标准化的关联关系记录
+                            relationship = {
+                                "table1": rel.get('from_table', '').split('.')[-1],
+                                "table2": rel.get('to_table', '').split('.')[-1],
+                                "field1": rel.get('from_field', ''),
+                                "field2": rel.get('to_field', ''),
+                                "relation_type": rel.get('type', '自动'),
+                                "confidence": rel.get('confidence', 0.8),
+                                "description": rel.get('description', ''),
+                                "is_validated": rel.get('is_validated', True),
+                                "join_condition": rel.get('join_condition', '')
+                            }
+                            relationships.append(relationship)
+                        except Exception as e:
+                            logger.error(f"处理表 {table_name} 的关联关系时出错: {e}")
+                            continue
+
+        # 保存到关联关系文件
+        result = {
+            "relationships": relationships,
+            "metadata": {
+                "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "version": "1.0",
+                "description": "从表结构知识库自动同步的关联关系",
+                "total_relationships": len(relationships),
+                "auto_relationships": len([r for r in relationships if r['relation_type'] == '自动']),
+                "manual_relationships": len([r for r in relationships if r['relation_type'] == '手工'])
+            }
+        }
+
+        try:
+            with open("table_relationships.json", 'w', encoding='utf-8') as f:
+                json.dump(result, f, ensure_ascii=False, indent=2)
+            return result
+        except Exception as e:
+            logger.error(f"保存关联关系失败: {e}")
+            return {"relationships": [], "metadata": {}}
+
+    def _load_relationships(self) -> Dict:
+        """加载或同步关联关系知识库"""
+        try:
+            # 总是从表结构知识库同步最新的关联关系
+            return self._sync_relationships_from_table_knowledge()
+        except Exception as e:
+            logger.error(f"同步关联关系失败: {e}")
+            return {"relationships": []}
+
+    def validate_join_relationship(self, table1: str, table2: str, join_condition: str) -> Tuple[bool, str]:
+        """验证两个表之间的关联关系是否在知识库中定义"""
+        # 每次验证前刷新关联关系
+        self.relationships = self._sync_relationships_from_table_knowledge()
+
+        # 标准化表名和字段名
+        def normalize_table(table):
+            return table.replace('[', '').replace(']', '').split('.')[-1].lower()
+
+        def normalize_field(field):
+            parts = field.replace('[', '').replace(']', '').split('.')
+            return parts[-1].lower()
+
+        def parse_join_condition(condition):
+            """解析JOIN条件，返回涉及的表和字段"""
+            # 提取ON子句后的条件
+            on_match = re.search(r'ON\s+(.+)$', condition, re.IGNORECASE)
+            if not on_match:
+                return None, None, None, None
+            
+            condition = on_match.group(1).strip()
+            # 解析等式两边
+            parts = re.split(r'\s*=\s*', condition)
+            if len(parts) != 2:
+                return None, None, None, None
+                
+            left, right = parts
+            left_parts = left.split('.')
+            right_parts = right.split('.')
+            
+            if len(left_parts) < 2 or len(right_parts) < 2:
+                return None, None, None, None
+                
+            return (normalize_table(left_parts[-2]), normalize_field(left_parts[-1]),
+                   normalize_table(right_parts[-2]), normalize_field(right_parts[-1]))
+
+        # 解析实际的JOIN条件
+        actual_tables = parse_join_condition(join_condition)
+        if not actual_tables:
+            return False, "无法解析JOIN条件，请确保使用正确的语法：ON table1.field1 = table2.field2"
+
+        actual_table1, actual_field1, actual_table2, actual_field2 = actual_tables
+        
+        # 在关系知识库中查找匹配的关联关系
+        for rel in self.relationships.get("relationships", []):
+            rel_table1 = normalize_table(rel["table1"])
+            rel_table2 = normalize_table(rel["table2"])
+            rel_field1 = normalize_field(rel["field1"])
+            rel_field2 = normalize_field(rel["field2"])
+            
+            # 检查表和字段是否匹配（考虑两种方向）
+            if ((actual_table1 == rel_table1 and actual_table2 == rel_table2) and
+                (actual_field1 == rel_field1 and actual_field2 == rel_field2)) or \
+               ((actual_table1 == rel_table2 and actual_table2 == rel_table1) and
+                (actual_field1 == rel_field2 and actual_field2 == rel_field1)):
+                
+                # 检查关联类型
+                confidence = rel.get("confidence", 0.8)
+                rel_type = rel.get("relation_type", "自动")
+                
+                # 返回验证结果和建议
+                return True, f"找到匹配的关联关系: {rel['description']} (置信度: {confidence}, 类型: {rel_type})"
+        
+        return False, f"表 {table1} 和 {table2} 之间的关联关系未在知识库中定义"
+    
+    def _ai_validate_joins(self, sql: str, join_clauses: list, issues: list) -> bool:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info("LLM正在校验...（AI大模型正在分析SQL与关系表的匹配情况）")
+        # 构建关系表信息
+        relationships_info = []
+        for rel in self.relationships.get("relationships", []):
+            relationships_info.append(f"{rel['table1']}.{rel['field1']} <-> {rel['table2']}.{rel['field2']} ({rel['description']})")
+        prompt = f"""
+你是SQL表关系校验专家，请结构化分析以下SQL的多表JOIN关系是否与给定的表关系定义（relationships）一致，并指出任何缺失、冗余或不一致之处。
+
+原始SQL：
+{sql}
+
+提取的JOIN子句：
+{join_clauses}
+
+表关系定义（relationships）：
+{relationships_info}
+
+请逐条比对SQL中的JOIN条件与relationships，指出：
+1. 哪些JOIN在relationships中有定义，哪些没有；
+2. relationships中有但SQL未用到的关联；
+3. 是否有冗余或重复；
+4. 最终结论：SQL的表连接关系是否完全符合relationships，若不符合请说明原因。
+
+请用结构化、分点的方式输出分析过程和结论。
+"""
+        ai_response = self.call_deepseek_api(prompt)
+        logger.info(f"AI大模型二次校验结果: {ai_response}")
+        if "合法" in ai_response and "不合法" not in ai_response:
+            return True
+        else:
+            return False
+
+    def _match_single_condition(self, actual: str, expected: str) -> bool:
+        """匹配单个关联条件"""
+        # 标准化字段名和操作符
+        def normalize_field(field):
+            # 移除表别名（如果有）
+            if '.' in field:
+                return field.split('.')[-1].strip()
+            return field.strip()
+
+        # 分解条件为左值、操作符和右值
+        actual_parts = actual.split()
+        expected_parts = expected.split()
+        
+        if len(actual_parts) != len(expected_parts):
+            return False
+            
+        # 比较操作符
+        if actual_parts[1].lower() != expected_parts[1].lower():
+            return False
+            
+        # 比较字段名（忽略表别名）
+        actual_left = normalize_field(actual_parts[0])
+        actual_right = normalize_field(actual_parts[2])
+        expected_left = normalize_field(expected_parts[0])
+        expected_right = normalize_field(expected_parts[2])
+        
+        # 字段可以交换位置比较
+        return ((actual_left == expected_left and actual_right == expected_right) or
+                (actual_left == expected_right and actual_right == expected_left))
+
+    def call_deepseek_api(self, prompt: str) -> str:
+        import requests
+        import logging
+        import time
+        logger = logging.getLogger(__name__)
+        headers = {
+            "Authorization": f"Bearer sk-0e6005b793aa4759bb022b91e9055f86",
+            "Content-Type": "application/json"
+        }
+        data = {
+            "model": "deepseek-chat",
+            "messages": [
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": 0.1,
+            "max_tokens": 1000
+        }
+        max_retry = 3
+        for attempt in range(max_retry):
+            try:
+                response = requests.post(
+                    "https://api.deepseek.com/v1/chat/completions",
+                    headers=headers,
+                    json=data,
+                    timeout=30
+                )
+                if response.status_code == 200:
+                    result = response.json()
+                    return result["choices"][0]["message"]["content"]
+                else:
+                    logger.error(f"API调用失败: {response.status_code}")
+                    if attempt == max_retry - 1:
+                        return f"API调用失败: {response.status_code}"
+            except requests.exceptions.Timeout as e:
+                logger.warning(f"DeepSeek API调用超时，第{attempt+1}次重试... {e}")
+                if attempt == max_retry - 1:
+                    return "API调用失败: 超时，请稍后重试。"
+                time.sleep(2)
+            except Exception as e:
+                logger.error(f"DeepSeek API调用失败: {e}")
+                if attempt == max_retry - 1:
+                    return f"API调用失败: {str(e)}"
+                time.sleep(2)
+
+class EnhancedPromptBuilder:
+    def build_comprehensive_prompt(self, context) -> str:
+        # 提取所有允许的表间关系
+        allowed_relationships = []
+        for table, info in context.table_knowledge.items():
+            if 'relationships' in info:
+                for rel in info['relationships']:
+                    allowed_relationships.append(f"- {rel['table1']}.{rel['field1']} = {rel['table2']}.{rel['field2']}  （{rel.get('description','')}）")
+        allowed_relationships_str = '\n'.join(allowed_relationships)
+        return f"""你是一个SQL专家。根据以下信息生成准确的SQL查询语句。
+
+【最高规则】
+你只能使用如下表间关系进行JOIN，禁止任何未在下列出现的表关系：
+{allowed_relationships_str}
+任何未在下列出现的JOIN关系都视为严重错误，禁止生成。
+
+表结构知识库(包含了表名、字段和关联关系)：
 {json.dumps(context.table_knowledge, ensure_ascii=False, indent=2)}
-
-产品知识库：
-{json.dumps(context.product_knowledge, ensure_ascii=False, indent=2)}
-
-业务规则：
-{json.dumps(context.business_rules, ensure_ascii=False, indent=2)}
 
 用户问题：{context.processed_question}
 
 严格要求：
-1. 只能使用以下已导入的表：{', '.join(context.allowed_tables)}
-2. 所有字段必须真实存在且属于正确的表
-3. 多表查询必须使用正确的JOIN和ON条件，只能使用知识库中的表关系数据
+1. 只能使用实际定义在表结构知识库中的表
+2. 字段必须真实存在于对应的表中
+3. 多表查询时必须使用知识库中定义的关联关系
 4. 只输出SQL语句，不要任何解释
+5. 单表查询优先：如果所需字段都在同一个表中，禁止使用JOIN
+6. JOIN必须在知识库中有定义，否则视为无效
 
 SQL语句："""
+
+class SQLCache:
+    def __init__(self, max_size: int = 100):
+        self.cache = {}
+        self.max_size = max_size
+        self.access_count = {}
     
-    class SQLCache:
-        def __init__(self, max_size: int = 100):
-            self.cache = {}
-            self.max_size = max_size
-            self.access_count = {}
-        
-        def get_cache_key(self, question: str, schema_hash: str, rules_hash: str) -> str:
-            content = f"{question}_{schema_hash}_{rules_hash}"
-            return hashlib.md5(content.encode()).hexdigest()
-        
-        def get(self, cache_key: str) -> Optional[str]:
-            if cache_key in self.cache:
-                self.access_count[cache_key] = self.access_count.get(cache_key, 0) + 1
-                return self.cache[cache_key]
-            return None
-        
-        def set(self, cache_key: str, sql: str):
-            if len(self.cache) >= self.max_size:
-                least_used = min(self.access_count.items(), key=lambda x: x[1])[0]
-                del self.cache[least_used]
-                del self.access_count[least_used]
-            
-            self.cache[cache_key] = sql
-            self.access_count[cache_key] = 1
-        
-        def clear(self):
-            self.cache.clear()
-            self.access_count.clear()
+    def get_cache_key(self, question: str, schema_hash: str, rules_hash: str) -> str:
+        content = f"{question}_{schema_hash}_{rules_hash}"
+        return hashlib.md5(content.encode()).hexdigest()
     
-    class UserFriendlyErrorHandler:
-        def format_issues(self, issues: List[str]) -> Dict[str, List[str]]:
-            formatted = {
-                "errors": [],
-                "warnings": [],
-                "suggestions": [],
-                "info": []
-            }
-            
-            for issue in issues:
-                if issue.startswith("ERROR"):
-                    formatted["errors"].append(issue.replace("ERROR: ", ""))
-                elif issue.startswith("WARNING"):
-                    formatted["warnings"].append(issue.replace("WARNING: ", ""))
-                elif issue.startswith("SUGGESTION"):
-                    formatted["suggestions"].append(issue.replace("SUGGESTION: ", ""))
-                else:
-                    formatted["info"].append(issue)
-            
-            return formatted
+    def get(self, cache_key: str) -> Optional[str]:
+        if cache_key in self.cache:
+            self.access_count[cache_key] = self.access_count.get(cache_key, 0) + 1
+            return self.cache[cache_key]
+        return None
     
-    def monitor_performance(func):
-        """性能监控装饰器"""
-        def wrapper(*args, **kwargs):
-            import time
-            start_time = time.time()
-            result = func(*args, **kwargs)
-            end_time = time.time()
-            
-            logger.info(f"{func.__name__} 执行时间: {end_time - start_time:.2f}秒")
-            return result
-        return wrapper
+    def set(self, cache_key: str, sql: str):
+        if len(self.cache) >= self.max_size:
+            least_used = min(self.access_count.items(), key=lambda x: x[1])[0]
+            del self.cache[least_used]
+            del self.access_count[least_used]
+        
+        self.cache[cache_key] = sql
+        self.access_count[cache_key] = 1
+    
+    def clear(self):
+        self.cache.clear()
+        self.access_count.clear()
+
+    def remove(self, cache_key: str):
+        """从缓存中移除指定的键"""
+        if cache_key in self.cache:
+            del self.cache[cache_key]
+            if cache_key in self.access_count:
+                del self.access_count[cache_key]
+
+class UserFriendlyErrorHandler:
+    def format_issues(self, issues: List[str]) -> Dict[str, List[str]]:
+        formatted = {
+            "errors": [],
+            "warnings": [],
+            "suggestions": [],
+            "info": []
+        }
+        
+        for issue in issues:
+            if issue.startswith("ERROR"):
+                formatted["errors"].append(issue.replace("ERROR: ", ""))
+            elif issue.startswith("WARNING"):
+                formatted["warnings"].append(issue.replace("WARNING: ", ""))
+            elif issue.startswith("SUGGESTION"):
+                formatted["suggestions"].append(issue.replace("SUGGESTION: ", ""))
+            else:
+                formatted["info"].append(issue)
+        
+        return formatted
+
+def monitor_performance(func):
+    """性能监控装饰器"""
+    def wrapper(*args, **kwargs):
+        import time
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        
+        logger.info(f"{func.__name__} 执行时间: {end_time - start_time:.2f}秒")
+        return result
+    return wrapper
 
 # 导入本地配置
 try:
@@ -215,7 +825,7 @@ try:
 except ImportError:
     # 如果没有配置文件，使用默认配置
     class LocalConfig:
-        DEEPSEEK_API_KEY = "sk-0e6005b793aa4759bb022b91e9055f86"
+        DEEPSEEK_API_KEY = "sk-11d947843d34406687c58269a4a0f966"  # 使用新的API key
         DEEPSEEK_MODEL = "deepseek-chat"
         CHROMA_DB_PATH = "./chroma_db"
         CHROMA_COLLECTION_NAME = "text2sql_knowledge"
@@ -231,7 +841,21 @@ except ImportError:
             }
 
 # 配置日志
-logging.basicConfig(level=getattr(LocalConfig, 'LOG_LEVEL', 'INFO'))
+# 移除所有已存在的handler
+for handler in logging.root.handlers[:]:
+    logging.root.removeHandler(handler)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s %(levelname)s %(message)s',
+    filename='text2sql_backend.log',
+    filemode='a'
+)
+# 同时输出到控制台
+console = logging.StreamHandler(sys.stdout)
+console.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+console.setFormatter(formatter)
+logging.getLogger('').addHandler(console)
 logger = logging.getLogger(__name__)
 
 class LocalDeepSeekVanna(ChromaDB_VectorStore, DeepSeekChat):
@@ -377,6 +1001,9 @@ class Text2SQLSystemV23:
         
         # 业务规则和术语映射
         self.business_rules = self.load_business_rules()
+        
+        # V2.3 增强: 历史问答知识库
+        self.historical_qa = self.load_historical_qa()
         
         # 提示词模板
         self.prompt_templates = self.load_prompt_templates()
@@ -547,31 +1174,7 @@ class Text2SQLSystemV23:
 
     def load_business_rules(self) -> Dict:
         """加载业务规则"""
-        default_rules = {
-            # 术语映射
-            "学生": "student",
-            "课程": "course", 
-            "成绩": "score",
-            "姓名": "name",
-            "性别": "gender",
-            "班级": "class",
-            "课程名称": "course_name",
-            "分数": "score",
-            
-            # 业务规则
-            "25年": "2025年",
-            "24年": "2024年",
-            "23年": "2023年",
-            "今年": "2024年",
-            "去年": "2023年",
-            "明年": "2025年",
-            
-            # 数值规则
-            "优秀": "score >= 90",
-            "良好": "score >= 80 AND score < 90",
-            "及格": "score >= 60 AND score < 80",
-            "不及格": "score < 60",
-        }
+        default_rules = {}
         
         rules_file = "business_rules.json"
         try:
@@ -622,6 +1225,7 @@ class Text2SQLSystemV23:
 5. 应用业务规则进行术语转换
 6. 参考表结构知识库理解表和字段含义
 7. 结合产品知识库理解业务逻辑
+8. 【最高优化原则】：如果所有需要的字段和过滤条件都存在于同一个表中，必须只使用单表查询，禁止进行任何不必要的JOIN操作。
 
 SQL语句：""",
 
@@ -712,68 +1316,48 @@ INVALID
         if not self.relation_manager:
             return
         
-        # 客户订单查询场景
-        if 'customer' in self.table_knowledge and 'order' in self.table_knowledge:
-            customer_order_scenario = QueryScenario(
-                scenario_name="客户订单查询",
-                involved_tables=["customer", "order"],
-                relation_chain=[
-                    TableRelationship("customer", "customer_id", "order", "customer_id", 
-                                    "一对多", "一个客户可以有多个订单")
-                ],
-                common_fields=["customer.name", "order.amount", "order.order_date"],
-                business_logic="通过客户ID关联客户表和订单表，用于查询客户的订单信息",
-                sql_template="SELECT c.name, o.amount FROM customer c JOIN order o ON c.customer_id = o.customer_id"
+        # 初始化基本的查询场景
+        if 'dtsupply_summary' in self.table_knowledge:
+            inventory_scenario = QueryScenario(
+                scenario_name="供应链库存查询",
+                involved_tables=["dtsupply_summary"],
+                relation_chain=[],
+                common_fields=["全链库存", "全链库存DOI", "财年", "财月", "财周", "自然年"],
+                business_logic="查询供应链库存相关信息",
+                sql_template="SELECT 全链库存, 全链库存DOI FROM dtsupply_summary WHERE 自然年={year} AND 财月='{month}'"
             )
-            self.relation_manager.query_scenarios.append(customer_order_scenario)
-        
-        # 订单商品查询场景
-        if all(table in self.table_knowledge for table in ['order', 'order_item', 'product']):
-            order_product_scenario = QueryScenario(
-                scenario_name="订单商品查询",
-                involved_tables=["order", "order_item", "product"],
-                relation_chain=[
-                    TableRelationship("order", "order_id", "order_item", "order_id", 
-                                    "一对多", "一个订单包含多个商品"),
-                    TableRelationship("order_item", "product_id", "product", "product_id", 
-                                    "多对一", "订单项对应具体商品")
-                ],
-                common_fields=["order.order_id", "product.name", "order_item.quantity"],
-                business_logic="通过订单明细表关联订单和商品，用于查询订单包含的商品信息",
-                sql_template="SELECT o.order_id, p.name, oi.quantity FROM order o JOIN order_item oi ON o.order_id = oi.order_id JOIN product p ON oi.product_id = p.product_id"
-            )
-            self.relation_manager.query_scenarios.append(order_product_scenario)
+            self.relation_manager.query_scenarios.append(inventory_scenario)
     
     def _add_scenario_term_mappings(self):
         """添加场景化术语映射"""
         if not self.term_mapper:
             return
         
-        # 客户相关术语
+        # 供应链相关术语
         self.term_mapper.add_scenario_mapping(
-            "客户订单", "客户的订单金额", 
-            ["customer", "order"], 
-            "order.amount",
-            ["customer.customer_id = order.customer_id"]
+            "库存查询", "全链库存查询", 
+            ["dtsupply_summary"], 
+            "全链库存",
+            []
         )
         
         self.term_mapper.add_scenario_mapping(
-            "客户统计", "客户订单数量",
-            ["customer", "order"],
-            "COUNT(order.order_id)",
-            ["customer.customer_id = order.customer_id"]
+            "库存周转", "库存周转天数",
+            ["dtsupply_summary"],
+            "全链库存DOI",
+            []
         )
         
-        # 商品相关术语
+        # 产品相关术语
         self.term_mapper.add_scenario_mapping(
-            "商品销量", "商品销售数量",
-            ["product", "order_item"],
-            "SUM(order_item.quantity)",
-            ["product.product_id = order_item.product_id"]
+            "产品库存", "产品库存数量",
+            ["dtsupply_summary"],
+            "全链库存",
+            []
         )
         
         # 歧义术语处理
-        self.term_mapper.add_ambiguous_term("销量", [
+        self.term_mapper.add_ambiguous_term("库存", [
             {
                 "scenario": "商品销量",
                 "keywords": ["商品", "产品"],
@@ -800,92 +1384,267 @@ INVALID
                 "客户和商品之间没有直接关联，需要通过订单表和订单明细表间接关联"
             )
 
+    def auto_add_full_table_name(self, sql: str, db_config: dict) -> str:
+        import re
+        db_name = db_config["config"].get("database") or db_config["config"].get("db") or ""
+        default_schema = "dbo"
+        table_full_map = {}
+        for table, info in self.table_knowledge.items():
+            schema = info.get("schema") or default_schema
+            database = info.get("database") or db_name
+            full_name = f"[{database}].[{schema}].[{table}]"
+            table_full_map[table.lower()] = full_name
+        # 支持 FROM/JOIN/LEFT JOIN/RIGHT JOIN/INNER JOIN/OUTER JOIN/LEFT OUTER JOIN/RIGHT OUTER JOIN
+        def table_replacer(match):
+            join_type = match.group(1)
+            tbl = match.group(2)
+            alias = match.group(3) or ""
+            tbl_clean = tbl.replace('[', '').replace(']', '').split('.')[-1].lower()
+            full = table_full_map.get(tbl_clean, tbl)
+            return f"{join_type} {full}{alias}"
+        # 匹配所有 JOIN 变体和 FROM
+        sql = re.sub(r'(FROM|JOIN|LEFT JOIN|RIGHT JOIN|INNER JOIN|OUTER JOIN|LEFT OUTER JOIN|RIGHT OUTER JOIN)\s+((?:\[[^\]]+\]\.)*\[[^\]]+\]|\w+)(\s+\w+)?', table_replacer, sql, flags=re.IGNORECASE)
+        return sql
+
+    def auto_correct_field_ownership(self, sql: str) -> str:
+        import re
+        # 解析所有表别名
+        alias_pattern = re.compile(r'(FROM|JOIN|LEFT JOIN|RIGHT JOIN|INNER JOIN|OUTER JOIN|LEFT OUTER JOIN|RIGHT OUTER JOIN)\s+((?:\[[^\]]+\]\.)*\[[^\]]+\]|\w+)(\s+\w+)?', re.IGNORECASE)
+        alias_map = {}
+        for match in alias_pattern.finditer(sql):
+            tbl = match.group(2)
+            alias = (match.group(3) or '').strip()
+            tbl_clean = tbl.replace('[', '').replace(']', '').split('.')[-1]
+            if alias:
+                alias_map[alias] = tbl_clean
+            else:
+                # 没有别名时，表名本身也可作为别名
+                alias_map[tbl_clean] = tbl_clean
+        # 字段归属修正
+        field_pattern = re.compile(r'(\b\w+)\.\[?(\w+)\]?')
+        corrections = []
+        for m in field_pattern.finditer(sql):
+            alias = m.group(1)
+            field = m.group(2)
+            table = alias_map.get(alias)
+            if table and table in self.table_knowledge:
+                columns = self.table_knowledge[table].get('columns', [])
+                if field not in columns:
+                    # 查找其他表是否有该字段
+                    for other_alias, other_table in alias_map.items():
+                        if other_table != table and other_table in self.table_knowledge:
+                            if field in self.table_knowledge[other_table].get('columns', []):
+                                # 自动修正为正确别名
+                                corrections.append((f'{alias}.[{field}]', f'{other_alias}.[{field}]'))
+                                break
+        # 应用修正
+        for wrong, right in corrections:
+            sql = sql.replace(wrong, right)
+        return sql
+
+    def llm_sql_fullname_correction(self, sql: str, db_config: dict) -> str:
+        import json
+        db_name = db_config["config"].get("database") or db_config["config"].get("db") or ""
+        prompt = f"""
+你是SQL专家。请对下方SQL做如下修正：
+1. 检查所有 FROM/JOIN/LEFT JOIN/RIGHT JOIN/INNER JOIN/OUTER JOIN/LEFT OUTER JOIN/RIGHT OUTER JOIN 后的表名。
+2. 如果表名未加数据库名和schema（如 [库名].[schema].[表名]），请自动补全，补全信息请严格参考下方表结构知识库。
+3. 只输出最终可直接执行的SQL，不要解释。
+
+表结构知识库（含库名/模式/表/字段）：
+{json.dumps(self.table_knowledge, ensure_ascii=False, indent=2)}
+
+原始SQL：
+{sql}
+"""
+        # 调用大模型
+        if self.vn:
+            result = self.vn.generate_sql(prompt)
+        else:
+            result = self.call_deepseek_api(prompt)
+        # 只提取SQL部分
+        return self.clean_sql(result)
+
+    def force_full_table_name(self, sql: str, db_config: dict) -> str:
+        import re
+        db_name = db_config["config"].get("database") or db_config["config"].get("db") or ""
+        default_schema = "dbo"
+        table_full_map = {}
+        for table, info in self.table_knowledge.items():
+            schema = info.get("schema") or default_schema
+            database = info.get("database") or db_name
+            full_name = f"[{database}].[{schema}].[{table}]"
+            table_full_map[table.lower()] = full_name
+        join_types = [
+            "LEFT OUTER JOIN", "RIGHT OUTER JOIN", "INNER JOIN", "OUTER JOIN",
+            "LEFT JOIN", "RIGHT JOIN", "JOIN", "FROM"
+        ]
+        join_types_regex = "|".join([re.escape(jt) for jt in join_types])
+        def table_replacer(match):
+            join_type = match.group(1)
+            tbl = match.group(2)
+            alias = match.group(3) or ""
+            tbl_clean = tbl.replace('[', '').replace(']', '').split('.')[-1].lower()
+            full = table_full_map.get(tbl_clean, tbl)
+            return f"{join_type} {full}{alias}"
+        sql = re.sub(
+            rf'({join_types_regex})\s+((?:\[[^\]]+\]\.)*\[[^\]]+\]|\w+)(\s+\w+)?',
+            table_replacer,
+            sql,
+            flags=re.IGNORECASE
+        )
+        return sql
+
+    def force_product_fields_like(self, sql: str) -> str:
+        import re
+        # 对 [group] = 'xxx' 替换为 [group] LIKE '%xxx%'
+        sql = re.sub(r"(\[group\]\s*=\s*)'([^']+)'", r"[group] LIKE '%\2%'", sql, flags=re.IGNORECASE)
+        # 对 [Roadmap Family] = 'xxx' 替换为 [Roadmap Family] LIKE '%xxx%'
+        sql = re.sub(r"(\[Roadmap Family\]\s*=\s*)'([^']+)'", r"[Roadmap Family] LIKE '%\2%'", sql, flags=re.IGNORECASE)
+        # 兼容带库名和schema的写法
+        sql = re.sub(r"(\[[^\]]+\]\.\[[^\]]+\]\.\[group\]\s*=\s*)'([^']+)'", r"[group] LIKE '%\2%'", sql, flags=re.IGNORECASE)
+        sql = re.sub(r"(\[[^\]]+\]\.\[[^\]]+\]\.\[Roadmap Family\]\s*=\s*)'([^']+)'", r"[Roadmap Family] LIKE '%\2%'", sql, flags=re.IGNORECASE)
+        return sql
+
     @monitor_performance
-    def generate_sql_enhanced(self, question: str, db_config: Dict) -> tuple:
-        """V2.3增强版SQL生成 - 整合V2.2核心优化"""
+    def generate_sql_enhanced(self, question: str, db_config: Dict, force_single_table: bool = False) -> tuple:
+        """合并生成与校验：只调用一次DeepSeek，生成SQL并自检合规性"""
         try:
-            # 1. 检查缓存
             schema_hash = hashlib.md5(str(self.table_knowledge).encode()).hexdigest()[:8]
             rules_hash = hashlib.md5(str(self.business_rules).encode()).hexdigest()[:8]
             cache_key = self.sql_cache.get_cache_key(question, schema_hash, rules_hash)
-            
+            st.session_state['current_cache_key_v23'] = cache_key
             cached_sql = self.sql_cache.get(cache_key)
             if cached_sql:
                 logger.info("使用缓存的SQL结果")
                 return cached_sql, "从缓存获取SQL（性能优化）"
-            
-            # 2. 获取数据库结构信息
+            processed_question = self.apply_business_rules(question)
+            # 构建合并生成与校验的Prompt
             schema_info = self.get_database_schema(db_config)
-            
-            # 3. 构建表名白名单 - 只允许使用已导入知识库的表
             allowed_tables = set(self.table_knowledge.keys()) if self.table_knowledge else set()
             if not allowed_tables:
                 return "", "错误：没有已导入知识库的表，请先在表结构管理中导入表。"
-            
-            # 4. 应用业务规则转换
-            processed_question = self.apply_business_rules(question)
-            
-            # 5. 构建SQL生成上下文
-            context = SQLGenerationContext(
-                question=question,
-                processed_question=processed_question,
-                schema_info=schema_info,
-                table_knowledge=self.table_knowledge,
-                product_knowledge=self.product_knowledge,
-                business_rules=self.business_rules,
-                allowed_tables=allowed_tables,
-                db_config=db_config
-            )
-            
-            # 6. 使用增强的提示词构建器
-            prompt = self.prompt_builder.build_comprehensive_prompt(context)
-            
-            # 7. 调用DeepSeek API生成SQL
-            if self.vn:
-                sql = self.vn.generate_sql(prompt)
+            relationships_info = []
+            for rel in self.sql_validator.relationships.get("relationships", []):
+                relationships_info.append(f"{rel['table1']}.{rel['field1']} <-> {rel['table2']}.{rel['field2']} ({rel['description']})")
+            prompt = f"""
+你是SQL生成与自检专家。请根据下方"表结构知识库"和"表关系定义"，\n1. 先生成满足"用户问题"的SQL；\n2. 再自检SQL的所有JOIN是否完全符合"表关系定义"，如有不符请自我修正，最终输出合规SQL；\n3. 输出结构化分析过程（如：每个JOIN是否合规、如有修正说明原因）。\n\n【表结构知识库】\n{schema_info}\n\n【表关系定义】\n{relationships_info}\n\n【业务规则映射】\n{json.dumps(self.business_rules, ensure_ascii=False, indent=2)}\n\n【用户问题】\n{question}\n\n【输出要求】\n1. 先输出最终合规SQL（只输出SQL，不要多余解释）；\n2. 再输出结构化分析过程。\n"""
+            logger.info("正在调用DeepSeek生成SQL并自检...")
+            st.info("正在调用AI生成SQL并自检...")
+            response = self.call_deepseek_api(prompt)
+            logger.info("AI生成与自检完成")
+            st.info("AI生成与自检完成")
+            # 解析返回，分离SQL和分析
+            sql = ""
+            analysis = ""
+            import re
+            # 尝试提取SQL（假设SQL在最前面，后面是分析）
+            sql_match = re.search(r"```sql[\s\S]*?([\s\S]+?)```", response, re.IGNORECASE)
+            if sql_match:
+                sql = sql_match.group(1).strip()
+                analysis = response.replace(sql_match.group(0), '').strip()
             else:
-                sql = self.call_deepseek_api(prompt)
-            
-            # 8. 清理SQL
+                # 兼容无代码块格式
+                lines = response.strip().split('\n')
+                sql_lines = []
+                analysis_lines = []
+                in_sql = True
+                for line in lines:
+                    if in_sql and (line.strip().lower().startswith('select') or line.strip().startswith('WITH')):
+                        sql_lines.append(line)
+                    elif in_sql and (line.strip() == '' or line.strip().startswith('--')):
+                        sql_lines.append(line)
+                    else:
+                        in_sql = False
+                        analysis_lines.append(line)
+                sql = '\n'.join(sql_lines).strip()
+                analysis = '\n'.join(analysis_lines).strip()
+            # SQL后处理
             cleaned_sql = self.clean_sql(sql)
-            
-            # 9. 使用V2.2统一验证器进行全面验证
-            validation_result = self.sql_validator.validate_comprehensive(cleaned_sql, context)
-            
-            if not validation_result.is_valid:
-                # 格式化错误信息
-                formatted_issues = self.error_handler.format_issues(validation_result.issues)
-                error_msg = "SQL验证失败：\n"
-                
-                if formatted_issues["errors"]:
-                    error_msg += "❌ 错误：\n" + "\n".join(formatted_issues["errors"]) + "\n"
-                if formatted_issues["warnings"]:
-                    error_msg += "⚠️ 警告：\n" + "\n".join(formatted_issues["warnings"]) + "\n"
-                if formatted_issues["suggestions"]:
-                    error_msg += "💡 建议：\n" + "\n".join(formatted_issues["suggestions"])
-                
-                return "", error_msg
-            
-            # 10. 使用修正后的SQL
-            final_sql = validation_result.corrected_sql
-            
-            # 11. 缓存结果
-            self.sql_cache.set(cache_key, final_sql)
-            
-            # 12. 构建成功消息
-            success_msg = f"SQL生成成功（性能评分：{validation_result.performance_score:.1f}/100）"
-            if validation_result.issues:
-                formatted_issues = self.error_handler.format_issues(validation_result.issues)
-                if formatted_issues["warnings"]:
-                    success_msg += "\n⚠️ 注意：\n" + "\n".join(formatted_issues["warnings"])
-                if formatted_issues["suggestions"]:
-                    success_msg += "\n💡 优化建议：\n" + "\n".join(formatted_issues["suggestions"])
-            
-            return final_sql, success_msg
-            
+            cleaned_sql = self.auto_add_full_table_name(cleaned_sql, db_config)
+            cleaned_sql = self.auto_correct_field_ownership(cleaned_sql)
+            cleaned_sql = self.llm_sql_fullname_correction(cleaned_sql, db_config)
+            cleaned_sql = self.force_full_table_name(cleaned_sql, db_config)
+            cleaned_sql = self.force_product_fields_like(cleaned_sql)
+            cleaned_sql = self.apply_conditional_rules(cleaned_sql, question)
+            self.sql_cache.set(cache_key, cleaned_sql)
+            # 返回SQL和分析过程
+            return cleaned_sql, analysis
         except Exception as e:
             logger.error(f"SQL生成失败: {e}")
-            return "", f"SQL生成失败: {str(e)}"
+            return "", f"SQL生成失败: {traceback.format_exc()}"
+
+    def _extract_required_entities(self, question: str) -> Optional[Dict]:
+        """阶段一：使用LLM提取问题所需的字段实体，不再提取表"""
+        try:
+            prompt = f"""你是一个数据分析专家。请分析以下用户问题，并识别出回答该问题所必需的所有字段。
+
+【表结构知识库】
+{json.dumps(self.table_knowledge, ensure_ascii=False, indent=2)}
+
+【用户问题】
+"{question}"
+
+【输出要求】
+- 只输出一个JSON对象，不要任何解释。
+- JSON格式为：{{"required_columns": ["字段1", "字段2", ...]}}
+- `required_columns` 必须包含问题中明确提到或隐含需要的所有查询和过滤字段。
+
+JSON输出：
+"""
+            response = self.call_deepseek_api(prompt)
+            # 清理并解析JSON
+            json_str = response.strip().replace("```json", "").replace("```", "")
+            entities = json.loads(json_str)
+            # 确保返回的格式正确
+            if 'required_columns' in entities and isinstance(entities['required_columns'], list):
+                return entities
+            return None
+        except Exception as e:
+            logger.error(f"实体提取失败: {e}")
+            return None
+
+    def _find_sufficient_single_table(self, required_columns: List[str]) -> Optional[str]:
+        """阶段二：根据所需字段，判断是否存在单个表可以满足所有需求"""
+        if not required_columns:
+            return None
+        
+        required_cols_set = set(col.lower() for col in required_columns)
+        
+        for table_name, table_info in self.table_knowledge.items():
+            table_cols_set = set(col.lower() for col in table_info.get('columns', []))
+            if required_cols_set.issubset(table_cols_set):
+                return table_name  # 找到一个表包含了所有必需字段
+        
+        return None
+
+    def _build_single_table_prompt(self, question: str, table_name: str) -> str:
+        """阶段三：构建一个严格限制的单表查询Prompt"""
+        
+        single_table_knowledge = {table_name: self.table_knowledge[table_name]}
+        
+        return f"""你是一个专业的SQL专家，并且严格遵守指令。
+
+【最高指令】
+你本次任务必须且只能使用 `{table_name}` 这一张表来生成SQL查询，禁止使用任何JOIN或查询其他任何表。
+
+【表结构知识库】
+{json.dumps(single_table_knowledge, ensure_ascii=False, indent=2)}
+
+【业务规则映射】
+{json.dumps(self.business_rules, ensure_ascii=False, indent=2)}
+
+【用户问题】
+"{question}"
+
+【严格要求】
+1. 必须只使用 `{table_name}` 表。
+2. 禁止使用JOIN。
+3. 所有字段必须真实存在于 `{table_name}` 表中。
+4. 只输出SQL语句，不要任何解释。
+
+SQL语句：
+"""
     
     @monitor_performance
     def generate_sql_multi_table_enhanced(self, question: str, db_config: Dict) -> tuple:
@@ -935,6 +1694,14 @@ INVALID
                 
                 # 解析结构化响应
                 sql, reasoning_process = self._parse_structured_response(sql_response)
+                # 自动加全名
+                sql = self.auto_add_full_table_name(sql, db_config)
+                # 字段归属自动修正
+                sql = self.auto_correct_field_ownership(sql)
+                # LLM智能全名补全
+                sql = self.llm_sql_fullname_correction(sql, db_config)
+                # 本地正则兜底强制全名
+                sql = self.force_full_table_name(sql, db_config)
                 
                 if not sql:
                     return "", f"多表SQL生成失败：无法解析生成的SQL\n推理过程：\n{reasoning_process}"
@@ -1085,14 +1852,15 @@ INVALID
             return "数据库结构获取失败"
     
     def apply_business_rules(self, question: str) -> str:
-        """应用业务规则转换问题"""
-        processed = question
-        
-        for term, replacement in self.business_rules.items():
-            if term in processed:
-                processed = processed.replace(term, replacement)
-        
-        return processed
+        """应用业务规则映射，自动将510S等关键词映射为[Roadmap Family] LIKE '%510S%'"""
+        import re
+        # 例：将510S映射为[Roadmap Family] LIKE '%510S%'
+        # 可扩展为更多业务规则
+        # 只处理最常见的"510S"场景
+        question = re.sub(r'\b510S\b', "[Roadmap Family] LIKE '%510S%'", question, flags=re.IGNORECASE)
+        # 剔除Model = '510S'等错误条件
+        question = re.sub(r"\bModel\s*=\s*'510S'", "[Roadmap Family] LIKE '%510S%'", question, flags=re.IGNORECASE)
+        return question
     
     def clean_sql(self, sql: str) -> str:
         """清理SQL语句"""
@@ -1188,6 +1956,154 @@ INVALID
             logger.error(f"保存提示词模板失败: {e}")
             return False
 
+    def load_historical_qa(self) -> List[Dict]:
+        """加载历史问答知识库"""
+        qa_file = "historical_qa.json"
+        try:
+            if os.path.exists(qa_file):
+                with open(qa_file, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+        except Exception as e:
+            logger.error(f"加载历史问答知识库失败: {e}")
+        return []
+
+    def save_historical_qa(self):
+        """保存历史问答知识库"""
+        qa_file = "historical_qa.json"
+        try:
+            with open(qa_file, 'w', encoding='utf-8') as f:
+                json.dump(self.historical_qa, f, ensure_ascii=False, indent=2)
+            return True
+        except Exception as e:
+            logger.error(f"保存历史问答知识库失败: {e}")
+            return False
+
+    def add_historical_qa(self, question: str, sql: str):
+        """添加一条正确的历史问答"""
+        # 避免重复添加
+        for item in self.historical_qa:
+            if item["question"] == question and item["sql"] == sql:
+                st.toast("此条记录已存在于历史知识库中。")
+                return
+        
+        self.historical_qa.append({
+            "question": question,
+            "sql": sql,
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "rating": "ok"
+        })
+        self.save_historical_qa()
+
+    def find_similar_historical_examples(self, question: str, n: int = 2) -> List[Dict]:
+        """从历史库中查找相似问题"""
+        if not self.historical_qa:
+            return []
+        
+        questions = [item["question"] for item in self.historical_qa]
+        # 使用difflib查找最相似的问题
+        similar_questions = get_close_matches(question, questions, n=n, cutoff=0.7)
+        
+        examples = []
+        for q in similar_questions:
+            for item in self.historical_qa:
+                if item["question"] == q:
+                    examples.append(item)
+                    break
+        return examples
+
+    def _find_sufficient_single_table_by_keywords(self, question: str) -> Optional[str]:
+        """(强制单表模式)通过关键词匹配查找最合适的单表"""
+        import re
+        # 提取问题中的所有名词和潜在字段名 (简化版)
+        keywords = set(re.findall(r'\b[A-Za-z_][A-Za-z0-9_]*\b', question))
+        
+        best_match_table = None
+        highest_score = 0
+
+        for table_name, table_info in self.table_knowledge.items():
+            table_cols_set = set(col.lower() for col in table_info.get('columns', []))
+            # 计算问题关键词与表字段的交集作为分数
+            score = len(keywords.intersection(table_cols_set))
+            
+            if score > highest_score:
+                highest_score = score
+                best_match_table = table_name
+        
+        # 只有当匹配分数足够高时才采用（避免偶然的匹配）
+        if highest_score > 1: # 至少匹配到2个以上字段
+            return best_match_table
+        
+        return None
+
+    def apply_conditional_rules(self, sql: str, question: str) -> str:
+        """根据business_rules['conditional_rules']自动拼接where条件"""
+        import re
+        rules = self.business_rules.get("conditional_rules", [])
+        appended_conditions = []
+        for rule in rules:
+            if rule.get("trigger_type") == "field":
+                # 字段触发：SQL中出现该字段
+                if rule["trigger_value"].lower() in sql.lower():
+                    appended_conditions.append(rule["condition"])
+            elif rule.get("trigger_type") == "keyword":
+                # 关键词触发：问题中出现该关键词
+                if rule["trigger_value"] in question:
+                    appended_conditions.append(rule["condition"])
+        if appended_conditions:
+            # 拼接到SQL的WHERE后
+            if re.search(r"\bwhere\b", sql, re.IGNORECASE):
+                sql = re.sub(r"(where[\s\S]*?)(order by|group by|$)",
+                    lambda m: m.group(1).rstrip() + " AND " + " AND ".join(appended_conditions) + (" " + m.group(2) if m.group(2) else ""),
+                    sql, flags=re.IGNORECASE)
+            else:
+                # 没有where则加where
+                sql = re.sub(r"(order by|group by|$)",
+                    lambda m: "WHERE " + " AND ".join(appended_conditions) + (" " + m.group(1) if m.group(1) else ""),
+                    sql, flags=re.IGNORECASE)
+        return sql
+
+    def train_vanna_with_enterprise_knowledge(self, qa_examples: list = None):
+        """用企业级表结构、关系、业务规则和问题-SQL对训练Vanna，强化只允许用关系表JOIN"""
+        if not self.vn:
+            raise RuntimeError("Vanna尚未初始化，请先调用initialize_local_vanna()")
+        import json
+        import re
+        st.info("开始用企业级知识库训练Vanna...")
+        # 1. 训练表结构DDL
+        for table_name, table_info in self.table_knowledge.items():
+            columns = table_info.get('column_info', [])
+            col_defs = []
+            for col in columns:
+                col_name = col[1]
+                col_type = col[2]
+                col_defs.append(f"[{col_name}] {col_type}")
+            ddl = f"CREATE TABLE [{table_name}] (\n  " + ",\n  ".join(col_defs) + "\n);"
+            self.vn.train(ddl=ddl)
+        # 2. 强化训练表关系
+        rel_texts = []
+        for table_name, table_info in self.table_knowledge.items():
+            for rel in table_info.get('relationships', []):
+                rel_desc = rel.get('description') or f"{rel['table1']}.{rel['field1']} = {rel['table2']}.{rel['field2']}"
+                rel_text = f"表关系: {rel_desc}"
+                self.vn.train(documentation=rel_text)
+                rel_texts.append(rel_text)
+        # 多次强调最高规则
+        if rel_texts:
+            rels_joined = '\n'.join(rel_texts)
+            for _ in range(3):
+                self.vn.train(documentation=f"最高规则：你只能使用如下表关系JOIN，禁止其它：\n{rels_joined}")
+        # 3. 训练业务规则
+        if self.business_rules:
+            self.vn.train(documentation=f"业务规则: {json.dumps(self.business_rules, ensure_ascii=False)}")
+        # 4. 训练企业级问题-SQL对
+        if qa_examples:
+            for qa in qa_examples:
+                q = qa.get('question')
+                sql = qa.get('sql')
+                if q and sql:
+                    self.vn.train(question=q, sql=sql)
+        st.success("✅ 企业级知识库训练完成！")
+
 def main():
     """主函数"""
     st.set_page_config(
@@ -1255,6 +2171,11 @@ def main():
             system.sql_cache.clear()
             st.success("缓存已清空")
             st.rerun()
+        
+        # V2.3新增：历史知识库统计
+        st.subheader("知识库状态")
+        historical_qa_count = len(system.historical_qa)
+        st.metric("历史优质问答", f"{historical_qa_count} 条")
     
     # 根据选择的页面显示不同内容
     if page == "SQL查询":
@@ -1296,18 +2217,15 @@ def show_sql_query_page_v23(system):
         
         # 预设问题
         example_questions = [
-            "显示所有学生信息",
-            "查询数学成绩大于90分的学生",
-            "统计每个班级的学生人数",
-            "显示最新的成绩记录",
-            "查询张三的所有成绩",
-            "统计各科目的平均分"
+            "510S本月全链库存 本月备货 MTM 未清PO",
+            "geek25年7月全链库存",
+            "geek25年7月全链库存，本月备货，MTM,未清PO",
         ]
         
         selected_example = st.selectbox("选择示例问题:", ["自定义问题"] + example_questions)
         
         if selected_example != "自定义问题":
-            question = selected_example
+            question = st.text_area("请输入您的问题:", value=selected_example, height=100)
         else:
             question = st.text_area("请输入您的问题:", height=100)
         
@@ -1321,6 +2239,9 @@ def show_sql_query_page_v23(system):
         if 'query_results_v23' not in st.session_state:
             st.session_state.query_results_v23 = None
         
+        # V2.3 终极优化：强制单表查询开关
+        force_single_table = st.checkbox("优先单表查询", value=True, help="当问题所需字段可能存在于单个表时，强制使用单表查询，避免不必要的JOIN。")
+        
         # V2.3增强：显示性能指标
         col_gen, col_perf = st.columns([3, 1])
         
@@ -1331,9 +2252,9 @@ def show_sql_query_page_v23(system):
                         # 获取选中的数据库配置
                         db_config = active_dbs[selected_db]
                         
-                        # 使用V2.3增强版SQL生成
+                        # 使用V2.3增强版SQL生成 (传入新参数)
                         start_time = time.time()
-                        sql, message = system.generate_sql_enhanced(question, db_config)
+                        sql, message = system.generate_sql_enhanced(question, db_config, force_single_table)
                         generation_time = time.time() - start_time
                         
                         if sql:
@@ -1482,6 +2403,33 @@ def show_sql_query_page_v23(system):
                     if st.session_state.current_sql_v23:
                         st.info("SQL性能分析功能开发中...")
     
+            # V2.3增强：SQL评价功能
+            st.subheader("评价本次查询:")
+            col_feedback1, col_feedback2, col_feedback3 = st.columns([1, 1, 3])
+
+            with col_feedback1:
+                if st.button("👍 正确"):
+                    if st.session_state.get('current_question_v23') and st.session_state.get('current_sql_v23'):
+                        system.add_historical_qa(st.session_state.current_question_v23, st.session_state.current_sql_v23)
+                        st.success("感谢评价！已将此优质问答存入历史知识库。")
+                        st.balloons()
+                    else:
+                        st.warning("没有可评价的查询。")
+            
+            with col_feedback2:
+                if st.button("👎 错误"):
+                    if st.session_state.get('current_cache_key_v23'):
+                        system.sql_cache.remove(st.session_state.current_cache_key_v23)
+                        st.success("感谢评价！已从缓存中移除此错误SQL，避免再次使用。")
+                        # 清空当前显示的错误结果
+                        st.session_state.current_sql_v23 = ""
+                        st.session_state.query_results_v23 = None
+                        if 'current_cache_key_v23' in st.session_state:
+                           del st.session_state['current_cache_key_v23']
+                        st.rerun()
+                    else:
+                        st.warning("没有可评价的缓存查询。")
+
     with col2:
         st.subheader("V2.3版本新特性")
         
@@ -1504,6 +2452,37 @@ def show_sql_query_page_v23(system):
         - **错误处理**: 用户友好的错误信息
         - **智能提示**: 基于上下文的提示词构建
         """)
+
+    # 新增：企业知识库一键训练Vanna
+    st.markdown("---")
+    st.subheader("企业知识库一键训练Vanna")
+    if hasattr(system, 'vn') and system.vn:
+        # 可编辑的qa_examples
+        if 'qa_examples' not in st.session_state:
+            st.session_state.qa_examples = [
+                {"question": f"查询{table_name}所有数据", "sql": f"SELECT * FROM [{table_name}]"}
+                for table_name in system.table_knowledge.keys()
+            ]
+        # 显示和编辑每对问题-SQL
+        remove_indices = []
+        for i, qa in enumerate(st.session_state.qa_examples):
+            st.markdown(f"**问题-SQL对 {i+1}**")
+            q = st.text_area(f"问题 {i+1}", value=qa["question"], key=f"q_{i}")
+            s = st.text_area(f"SQL {i+1}", value=qa["sql"], key=f"s_{i}")
+            st.session_state.qa_examples[i]["question"] = q
+            st.session_state.qa_examples[i]["sql"] = s
+            if st.button(f"删除第{i+1}对", key=f"del_{i}"):
+                remove_indices.append(i)
+        # 删除选中的
+        for idx in sorted(remove_indices, reverse=True):
+            st.session_state.qa_examples.pop(idx)
+        if st.button("新增问题-SQL对"):
+            st.session_state.qa_examples.append({"question": "", "sql": ""})
+        if st.button("确认并训练Vanna", type="primary"):
+            qa_examples = [qa for qa in st.session_state.qa_examples if qa["question"].strip() and qa["sql"].strip()]
+            system.train_vanna_with_enterprise_knowledge(qa_examples)
+    else:
+        st.info("请先初始化本地Vanna，再进行知识库训练。")
 
 # 其他页面函数继承V2.1版本，这里先使用占位符
 def show_database_management_page_v23(system):
@@ -1825,12 +2804,14 @@ def show_table_management_page_v23(system):
     with col1:
         st.subheader("数据库表列表")
         
-        # 获取表列表 - 添加性能监控
-        with st.spinner("正在获取表列表..."):
-            start_time = time.time()
-            tables = system.db_manager.get_tables(db_config["type"], db_config["config"])
-            load_time = time.time() - start_time
-            
+        # V2.3 增强：仅在选择数据库后加载表
+        tables = []
+        if selected_db:
+            with st.spinner("正在获取表列表..."):
+                start_time = time.time()
+                tables = system.db_manager.get_tables(db_config["type"], db_config["config"])
+                load_time = time.time() - start_time
+        
         if tables:
             st.info(f"共找到 {len(tables)} 个表 (耗时: {load_time:.2f}s)")
             
@@ -1854,7 +2835,9 @@ def show_table_management_page_v23(system):
                                         "comment": f"从{db_config['name']}自动导入",
                                         "relationships": [],
                                         "business_fields": {},
-                                        "import_time": time.strftime("%Y-%m-%d %H:%M:%S")
+                                        "import_time": time.strftime("%Y-%m-%d %H:%M:%S"),
+                                        "database": db_config["config"].get("database") or db_config["config"].get("db") or "",
+                                        "schema": "dbo",
                                     }
                                     imported_count += 1
                         
@@ -1946,7 +2929,9 @@ def show_table_management_page_v23(system):
                                         "comment": "",
                                         "relationships": [],
                                         "business_fields": {},
-                                        "import_time": time.strftime("%Y-%m-%d %H:%M:%S")
+                                        "import_time": time.strftime("%Y-%m-%d %H:%M:%S"),
+                                        "database": db_config["config"].get("database") or db_config["config"].get("db") or "",
+                                        "schema": "dbo",
                                     }
                                     system.save_table_knowledge()
                                     st.success(f"表 {table} 已导入知识库")
@@ -1972,6 +2957,13 @@ def show_table_management_page_v23(system):
                     col_kb1, col_kb2 = st.columns([2, 1])
                     
                     with col_kb1:
+                        # V2.3增强：数据库和Schema可编辑
+                        current_db = table_info.get("database", "")
+                        new_db = st.text_input("所属数据库:", value=current_db, key=f"db_{table_name}")
+                        
+                        current_schema = table_info.get("schema", "dbo")
+                        new_schema = st.text_input("所属Schema:", value=current_schema, key=f"schema_{table_name}")
+
                         # 表备注编辑
                         current_comment = table_info.get("comment", "")
                         new_comment = st.text_area(
@@ -1981,12 +2973,18 @@ def show_table_management_page_v23(system):
                             height=60
                         )
                         
-                        if new_comment != current_comment:
-                            if st.button(f"保存备注", key=f"save_comment_{table_name}"):
-                                system.table_knowledge[table_name]["comment"] = new_comment
-                                system.save_table_knowledge()
-                                st.success("备注已保存")
-                                st.rerun()
+                        if st.button(f"保存元数据", key=f"save_meta_{table_name}"):
+                            system.table_knowledge[table_name]["database"] = new_db
+                            system.table_knowledge[table_name]["schema"] = new_schema
+                            system.table_knowledge[table_name]["comment"] = new_comment
+                            system.save_table_knowledge()
+                            
+                            # V2.3 增强：强制重新加载知识库并清空缓存
+                            st.session_state.system_v23 = Text2SQLSystemV23()
+                            st.session_state.system_v23.sql_cache.clear()
+                            
+                            st.success("元数据已保存，知识库和缓存已刷新！")
+                            st.rerun()
                         
                         # 字段备注编辑
                         st.write("**字段备注:**")
@@ -2736,7 +3734,7 @@ def show_business_rules_page_v23(system):
             col_term1, col_term2, col_term3 = st.columns([2, 2, 1])
             
             with col_term1:
-                business_term = st.text_input("业务术语:", placeholder="例如: 学生")
+                business_term = st.text_input("业务术语:", placeholder="例如: 预测")
             with col_term2:
                 db_term = st.text_input("数据库术语:", placeholder="例如: student")
             with col_term3:
@@ -3174,6 +4172,77 @@ def show_business_rules_page_v23(system):
             else:
                 st.session_state["confirm_reset_rules"] = True
                 st.warning("再次点击确认重置")
+
+        # 条件规则管理区
+        st.subheader("条件规则管理")
+        if "conditional_rules" not in system.business_rules:
+            system.business_rules["conditional_rules"] = []
+        conditional_rules = system.business_rules["conditional_rules"]
+        # 展示现有规则
+        if conditional_rules:
+            for idx, rule in enumerate(conditional_rules):
+                with st.expander(f"规则{idx+1}: {rule.get('description', '')}"):
+                    st.write(f"**触发类型**: {rule.get('trigger_type', '')}")
+                    st.write(f"**触发值**: {rule.get('trigger_value', '')}")
+                    st.write(f"**动作**: {rule.get('action', '')}")
+                    st.write(f"**追加条件**: {rule.get('condition', '')}")
+                    st.write(f"**描述**: {rule.get('description', '')}")
+                    col_edit, col_del = st.columns(2)
+                    with col_edit:
+                        if st.button("编辑", key=f"edit_cond_{idx}"):
+                            st.session_state[f"editing_cond_{idx}"] = True
+                            st.rerun()
+                    with col_del:
+                        if st.button("删除", key=f"del_cond_{idx}"):
+                            conditional_rules.pop(idx)
+                            system.save_business_rules()
+                            st.success("已删除条件规则")
+                            st.rerun()
+                    # 编辑模式
+                    if st.session_state.get(f"editing_cond_{idx}", False):
+                        with st.form(f"edit_cond_form_{idx}"):
+                            trigger_type = st.selectbox("触发类型", ["field", "keyword"], index=0 if rule.get('trigger_type')=="field" else 1)
+                            trigger_value = st.text_input("触发值", value=rule.get('trigger_value', ''))
+                            action = st.selectbox("动作", ["where_append"], index=0)
+                            condition = st.text_input("追加条件", value=rule.get('condition', ''))
+                            description = st.text_input("描述", value=rule.get('description', ''))
+                            if st.form_submit_button("保存修改"):
+                                rule.update({
+                                    "trigger_type": trigger_type,
+                                    "trigger_value": trigger_value,
+                                    "action": action,
+                                    "condition": condition,
+                                    "description": description
+                                })
+                                system.save_business_rules()
+                                st.session_state[f"editing_cond_{idx}"] = False
+                                st.success("已保存修改")
+                                st.rerun()
+        else:
+            st.info("暂无条件规则")
+        # 添加新条件规则
+        st.subheader("添加新条件规则")
+        with st.form("add_conditional_rule"):
+            trigger_type = st.selectbox("触发类型", ["field", "keyword"])
+            trigger_value = st.text_input("触发值", placeholder="如 roadmap family 或 geek全链库存")
+            action = st.selectbox("动作", ["where_append"])
+            condition = st.text_input("追加条件", placeholder="如 [group]='ttl'")
+            description = st.text_input("描述", placeholder="规则说明")
+            if st.form_submit_button("添加条件规则"):
+                if trigger_value and condition:
+                    new_rule = {
+                        "trigger_type": trigger_type,
+                        "trigger_value": trigger_value,
+                        "action": action,
+                        "condition": condition,
+                        "description": description
+                    }
+                    conditional_rules.append(new_rule)
+                    system.save_business_rules()
+                    st.success("已添加条件规则")
+                    st.rerun()
+                else:
+                    st.warning("请填写触发值和追加条件")
 
 def show_prompt_templates_page_v23(system):
     """提示词管理页面 V2.3 - 完整功能版"""

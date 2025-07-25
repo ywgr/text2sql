@@ -1,0 +1,1875 @@
+{
+  "dtsupply_summary": {
+    "columns": [
+      "财年",
+      "财月",
+      "财周",
+      "自然年",
+      "Group",
+      "Model",
+      "Roadmap Family",
+      "所有欠单",
+      "成品总量",
+      "BTC 库存总量",
+      "BTC 在途总量",
+      "联想DC库存",
+      "欠单",
+      "PO PSD",
+      "PO RSD",
+      "全链库存",
+      "全渠道库存",
+      "全链库存DOI",
+      "SellOut预测",
+      "SellIn",
+      "SellOut",
+      "日均SellOut",
+      "财周天数",
+      "FCST",
+      "RSD全链库存",
+      "PSD全链库存",
+      "RSD全链库存DOI",
+      "PSD全链库存DOI",
+      "FCST全链库存",
+      "FCST全链库存DOI",
+      "确认",
+      "TTLPSD",
+      "TTLRSD",
+      "TTLFCST",
+      "自然周",
+      "自然月X"
+    ],
+    "column_info": [
+      [
+        0,
+        "财年",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        1,
+        "财月",
+        "NVARCHAR(255) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        2,
+        "财周",
+        "NVARCHAR(255) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        3,
+        "自然年",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        4,
+        "Group",
+        "NVARCHAR(255) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        5,
+        "Model",
+        "NVARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        6,
+        "Roadmap Family",
+        "NVARCHAR(100) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        7,
+        "所有欠单",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        8,
+        "成品总量",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        9,
+        "BTC 库存总量",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        10,
+        "BTC 在途总量",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        11,
+        "联想DC库存",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        12,
+        "欠单",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        13,
+        "PO PSD",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        14,
+        "PO RSD",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        15,
+        "全链库存",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        16,
+        "全渠道库存",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        17,
+        "全链库存DOI",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        18,
+        "SellOut预测",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        19,
+        "SellIn",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        20,
+        "SellOut",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        21,
+        "日均SellOut",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        22,
+        "财周天数",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        23,
+        "FCST",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        24,
+        "RSD全链库存",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        25,
+        "PSD全链库存",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        26,
+        "RSD全链库存DOI",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        27,
+        "PSD全链库存DOI",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        28,
+        "FCST全链库存",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        29,
+        "FCST全链库存DOI",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        30,
+        "确认",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        31,
+        "TTLPSD",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        32,
+        "TTLRSD",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        33,
+        "TTLFCST",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        34,
+        "自然周",
+        "NVARCHAR(515) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        35,
+        "自然月X",
+        "NVARCHAR(260) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ]
+    ],
+    "comment": "",
+    "relationships": [
+      {
+        "table1": "CONPD",
+        "table2": "dtsupply_summary",
+        "field1": "Roadmap Family",
+        "field2": "Roadmap Family",
+        "type": "auto",
+        "description": "CONPD.Roadmap Family = dtsupply_summary.Roadmap Family",
+        "confidence": 0.8
+      },
+      {
+        "table1": "CONPD",
+        "table2": "dtsupply_summary",
+        "field1": "Group",
+        "field2": "Group",
+        "type": "auto",
+        "description": "CONPD.Group = dtsupply_summary.Group",
+        "confidence": 0.8
+      },
+      {
+        "table1": "CONPD",
+        "table2": "dtsupply_summary",
+        "field1": "Model",
+        "field2": "Model",
+        "type": "auto",
+        "description": "CONPD.Model = dtsupply_summary.Model",
+        "confidence": 0.8
+      },
+      {
+        "table1": "CONPD",
+        "table2": "dtsupply_summary",
+        "field1": "Roadmap Family",
+        "field2": "Roadmap Family",
+        "type": "auto",
+        "description": "CONPD.Roadmap Family = dtsupply_summary.Roadmap Family",
+        "confidence": 0.8
+      },
+      {
+        "table1": "CONPD",
+        "table2": "dtsupply_summary",
+        "field1": "Group",
+        "field2": "Group",
+        "type": "auto",
+        "description": "CONPD.Group = dtsupply_summary.Group",
+        "confidence": 0.8
+      },
+      {
+        "table1": "ConDT_Commit",
+        "table2": "dtsupply_summary",
+        "field1": "财月",
+        "field2": "财月",
+        "type": "auto",
+        "description": "ConDT_Commit.财月 = dtsupply_summary.财月",
+        "confidence": 0.8
+      },
+      {
+        "table1": "ConDT_Commit",
+        "table2": "dtsupply_summary",
+        "field1": "财年",
+        "field2": "财年",
+        "type": "auto",
+        "description": "ConDT_Commit.财年 = dtsupply_summary.财年",
+        "confidence": 0.8
+      }
+    ],
+    "business_fields": {},
+    "import_time": "2025-07-21 10:05:01"
+  },
+  "CONPD": {
+    "columns": [
+      "PN",
+      "Roadmap Family",
+      "Group",
+      "Model"
+    ],
+    "column_info": [
+      [
+        0,
+        "PN",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        false,
+        null,
+        false
+      ],
+      [
+        1,
+        "Roadmap Family",
+        "VARCHAR(100) COLLATE \"Chinese_PRC_CI_AS\"",
+        false,
+        null,
+        false
+      ],
+      [
+        2,
+        "Group",
+        "VARCHAR(150) COLLATE \"Chinese_PRC_CI_AS\"",
+        false,
+        null,
+        false
+      ],
+      [
+        3,
+        "Model",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ]
+    ],
+    "comment": "",
+    "relationships": [
+      {
+        "table1": "CONPD",
+        "table2": "dtsupply_summary",
+        "field1": "Roadmap Family",
+        "field2": "Roadmap Family",
+        "type": "auto",
+        "description": "CONPD.Roadmap Family = dtsupply_summary.Roadmap Family",
+        "confidence": 0.8
+      },
+      {
+        "table1": "CONPD",
+        "table2": "dtsupply_summary",
+        "field1": "Group",
+        "field2": "Group",
+        "type": "auto",
+        "description": "CONPD.Group = dtsupply_summary.Group",
+        "confidence": 0.8
+      },
+      {
+        "table1": "CONPD",
+        "table2": "备货NY",
+        "field1": "PN",
+        "field2": "MTM",
+        "type": "manual",
+        "description": "CONPD.PN <-> 备货NY.MTM",
+        "confidence": 1.0
+      },
+      {
+        "table1": "CONPD",
+        "table2": "dtsupply_summary",
+        "field1": "Model",
+        "field2": "Model",
+        "type": "auto",
+        "description": "CONPD.Model = dtsupply_summary.Model",
+        "confidence": 0.8
+      },
+      {
+        "table1": "CONPD",
+        "table2": "dtsupply_summary",
+        "field1": "Roadmap Family",
+        "field2": "Roadmap Family",
+        "type": "auto",
+        "description": "CONPD.Roadmap Family = dtsupply_summary.Roadmap Family",
+        "confidence": 0.8
+      },
+      {
+        "table1": "CONPD",
+        "table2": "dtsupply_summary",
+        "field1": "Group",
+        "field2": "Group",
+        "type": "auto",
+        "description": "CONPD.Group = dtsupply_summary.Group",
+        "confidence": 0.8
+      },
+      {
+        "table1": "CONPD",
+        "table2": "ConDT_Commit",
+        "field1": "PN",
+        "field2": "PN",
+        "type": "auto",
+        "description": "CONPD.PN = ConDT_Commit.PN",
+        "confidence": 0.8
+      },
+      {
+        "table1": "CONPD",
+        "table2": "ConDT_Open_PO",
+        "field1": "PN",
+        "field2": "PN",
+        "type": "auto",
+        "description": "CONPD.PN = ConDT_Open_PO.PN",
+        "confidence": 0.8
+      }
+    ],
+    "business_fields": {},
+    "import_time": "2025-07-21 10:05:54"
+  },
+  "备货NY": {
+    "columns": [
+      "id",
+      "版本号",
+      "name",
+      "MTM",
+      "Series",
+      "本月备货",
+      "下月备货",
+      "备注"
+    ],
+    "column_info": [
+      [
+        0,
+        "id",
+        "INTEGER",
+        false,
+        null,
+        false
+      ],
+      [
+        1,
+        "版本号",
+        "NVARCHAR(255) COLLATE \"Chinese_PRC_CI_AS\"",
+        false,
+        null,
+        false
+      ],
+      [
+        2,
+        "name",
+        "NVARCHAR(255) COLLATE \"Chinese_PRC_CI_AS\"",
+        false,
+        null,
+        false
+      ],
+      [
+        3,
+        "MTM",
+        "NVARCHAR(255) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        4,
+        "Series",
+        "NVARCHAR(255) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        5,
+        "本月备货",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        6,
+        "下月备货",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        7,
+        "备注",
+        "NVARCHAR(255) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ]
+    ],
+    "comment": "",
+    "relationships": [
+      {
+        "table1": "CONPD",
+        "table2": "备货NY",
+        "field1": "PN",
+        "field2": "MTM",
+        "type": "manual",
+        "description": "CONPD.PN <-> 备货NY.MTM",
+        "confidence": 1.0
+      }
+    ],
+    "business_fields": {},
+    "import_time": "2025-07-21 10:06:44"
+  },
+  "ConDT_Commit": {
+    "columns": [
+      "Version",
+      "Commit版本",
+      "预测版本",
+      "FCST Version",
+      "财年",
+      "财季",
+      "财月",
+      "Commit Family",
+      "Family3",
+      "Plant",
+      "PN",
+      "Desc",
+      "W1",
+      "W2",
+      "W3",
+      "W4",
+      "W5",
+      "QTY"
+    ],
+    "column_info": [
+      [
+        0,
+        "Version",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        1,
+        "Commit版本",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        2,
+        "预测版本",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        3,
+        "FCST Version",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        4,
+        "财年",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        5,
+        "财季",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        6,
+        "财月",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        7,
+        "Commit Family",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        8,
+        "Family3",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        9,
+        "Plant",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        10,
+        "PN",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        11,
+        "Desc",
+        "VARCHAR(500) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        12,
+        "W1",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        13,
+        "W2",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        14,
+        "W3",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        15,
+        "W4",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        16,
+        "W5",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        17,
+        "QTY",
+        "INTEGER",
+        true,
+        null,
+        false
+      ]
+    ],
+    "comment": "",
+    "relationships": [
+      {
+        "table1": "CONPD",
+        "table2": "ConDT_Commit",
+        "field1": "PN",
+        "field2": "PN",
+        "type": "auto",
+        "description": "CONPD.PN = ConDT_Commit.PN",
+        "confidence": 0.8
+      },
+      {
+        "table1": "ConDT_Commit",
+        "table2": "dtsupply_summary",
+        "field1": "财月",
+        "field2": "财月",
+        "type": "auto",
+        "description": "ConDT_Commit.财月 = dtsupply_summary.财月",
+        "confidence": 0.8
+      },
+      {
+        "table1": "ConDT_Commit",
+        "table2": "dtsupply_summary",
+        "field1": "财年",
+        "field2": "财年",
+        "type": "auto",
+        "description": "ConDT_Commit.财年 = dtsupply_summary.财年",
+        "confidence": 0.8
+      },
+      {
+        "table1": "ConDT_Commit",
+        "table2": "ConDT_Open_PO",
+        "field1": "PN",
+        "field2": "PN",
+        "type": "auto",
+        "description": "ConDT_Commit.PN = ConDT_Open_PO.PN",
+        "confidence": 0.8
+      },
+      {
+        "table1": "ConDT_Commit",
+        "table2": "ConDT_Open_PO",
+        "field1": "Desc",
+        "field2": "Desc",
+        "type": "auto",
+        "description": "ConDT_Commit.Desc = ConDT_Open_PO.Desc",
+        "confidence": 0.8
+      },
+      {
+        "table1": "ConDT_Commit",
+        "table2": "ConDT_Open_PO",
+        "field1": "Plant",
+        "field2": "Plant",
+        "type": "auto",
+        "description": "ConDT_Commit.Plant = ConDT_Open_PO.Plant",
+        "confidence": 0.8
+      },
+      {
+        "table1": "ConDT_Commit",
+        "table2": "ConDT_Open_PO",
+        "field1": "Version",
+        "field2": "Version",
+        "type": "auto",
+        "description": "ConDT_Commit.Version = ConDT_Open_PO.Version",
+        "confidence": 0.8
+      }
+    ],
+    "business_fields": {},
+    "import_time": "2025-07-21 12:59:54"
+  },
+  "ConDT_Open_PO": {
+    "columns": [
+      "Version",
+      "DataDownloadTime",
+      "LastUpdateTime",
+      "ODM",
+      "PO",
+      "PO Item",
+      "BG",
+      "Segment",
+      "Sub Segment",
+      "Product Line",
+      "Sub Product Line",
+      "Material Type",
+      "Created By",
+      "Order Create By",
+      "SOS",
+      "GEO",
+      "SO",
+      "Order Type",
+      "创建日期",
+      "创建时间",
+      "Sales Org",
+      "Channel",
+      "Division",
+      "采购订单编号",
+      "产品策略",
+      "Order Reason",
+      "Order Item",
+      "PN",
+      "Desc",
+      "Qty",
+      "Rej Code",
+      "Plant",
+      "Storage",
+      "CRAD",
+      "RSD",
+      "Line PSD",
+      "订单交付类型",
+      "Delivery Priority",
+      "Local Priority",
+      "CDBID",
+      "Attribute",
+      "Repl Category Code",
+      "Net Price RMB",
+      "Credit Price",
+      "DN",
+      "DN Item",
+      "DN Cr Date ",
+      "DN Cr Time",
+      "GI",
+      "GI Date",
+      "GI Time",
+      "Bill",
+      "Bill Item",
+      "Bill Type",
+      "Bill Date",
+      "SD PR",
+      "SD PR Item",
+      "SD PO",
+      "SD PO Pur Org",
+      "SD PO Vendor",
+      "SD PO Date",
+      "SD PO Del",
+      "SD PO Item",
+      "SD PO Mat Qty",
+      "SD PO Plant",
+      "SD PO GR Qty",
+      "SD PO Open Qty",
+      "Hub SO",
+      "Hub SO Cr Dt",
+      "Hub SO Cr Time",
+      "Hub SO Item",
+      "Hub SO Plant",
+      "Hub SO Storage Location",
+      "Hub GI Qty",
+      "HOH PR",
+      "HOH PR Item",
+      "HOH PO",
+      "HOH PO Pur Org",
+      "HOH PO Vendor",
+      "HOH PO Date",
+      "HOH PO Item",
+      "HOH PO Mat Qty",
+      "HOH PO Plant",
+      "HOH PO Gr Qty",
+      "HOH PO Open Qty",
+      "MFG SO",
+      "MFG SO Cr Dt",
+      "MFG SO Cr Time",
+      "MFG RSD",
+      "MFG SO Type",
+      "MFG SO Plant",
+      "MFG SO Storage Location",
+      "MFG SO CRAD",
+      "MFG SO RSD",
+      "MFG SO Qty",
+      "MFG MO Qty",
+      "MFG MO GR Qty",
+      "MFG DN Qty",
+      "MFG DN GI Qty",
+      "850 DOC",
+      "850 DOC time",
+      "855 DOC",
+      "855 DOC time",
+      "850 DOC Status",
+      "855 DOC Status",
+      "Original System",
+      "From",
+      "库位描述"
+    ],
+    "column_info": [
+      [
+        0,
+        "Version",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        1,
+        "DataDownloadTime",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        2,
+        "LastUpdateTime",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        3,
+        "ODM",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        4,
+        "PO",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        5,
+        "PO Item",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        6,
+        "BG",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        7,
+        "Segment",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        8,
+        "Sub Segment",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        9,
+        "Product Line",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        10,
+        "Sub Product Line",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        11,
+        "Material Type",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        12,
+        "Created By",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        13,
+        "Order Create By",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        14,
+        "SOS",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        15,
+        "GEO",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        16,
+        "SO",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        17,
+        "Order Type",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        18,
+        "创建日期",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        19,
+        "创建时间",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        20,
+        "Sales Org",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        21,
+        "Channel",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        22,
+        "Division",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        23,
+        "采购订单编号",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        24,
+        "产品策略",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        25,
+        "Order Reason",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        26,
+        "Order Item",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        27,
+        "PN",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        28,
+        "Desc",
+        "VARCHAR(500) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        29,
+        "Qty",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        30,
+        "Rej Code",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        31,
+        "Plant",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        32,
+        "Storage",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        33,
+        "CRAD",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        34,
+        "RSD",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        35,
+        "Line PSD",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        36,
+        "订单交付类型",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        37,
+        "Delivery Priority",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        38,
+        "Local Priority",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        39,
+        "CDBID",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        40,
+        "Attribute",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        41,
+        "Repl Category Code",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        42,
+        "Net Price RMB",
+        "DECIMAL(18, 3)",
+        true,
+        null,
+        false
+      ],
+      [
+        43,
+        "Credit Price",
+        "DECIMAL(18, 3)",
+        true,
+        null,
+        false
+      ],
+      [
+        44,
+        "DN",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        45,
+        "DN Item",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        46,
+        "DN Cr Date ",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        47,
+        "DN Cr Time",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        48,
+        "GI",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        49,
+        "GI Date",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        50,
+        "GI Time",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        51,
+        "Bill",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        52,
+        "Bill Item",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        53,
+        "Bill Type",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        54,
+        "Bill Date",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        55,
+        "SD PR",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        56,
+        "SD PR Item",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        57,
+        "SD PO",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        58,
+        "SD PO Pur Org",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        59,
+        "SD PO Vendor",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        60,
+        "SD PO Date",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        61,
+        "SD PO Del",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        62,
+        "SD PO Item",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        63,
+        "SD PO Mat Qty",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        64,
+        "SD PO Plant",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        65,
+        "SD PO GR Qty",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        66,
+        "SD PO Open Qty",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        67,
+        "Hub SO",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        68,
+        "Hub SO Cr Dt",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        69,
+        "Hub SO Cr Time",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        70,
+        "Hub SO Item",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        71,
+        "Hub SO Plant",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        72,
+        "Hub SO Storage Location",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        73,
+        "Hub GI Qty",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        74,
+        "HOH PR",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        75,
+        "HOH PR Item",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        76,
+        "HOH PO",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        77,
+        "HOH PO Pur Org",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        78,
+        "HOH PO Vendor",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        79,
+        "HOH PO Date",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        80,
+        "HOH PO Item",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        81,
+        "HOH PO Mat Qty",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        82,
+        "HOH PO Plant",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        83,
+        "HOH PO Gr Qty",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        84,
+        "HOH PO Open Qty",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        85,
+        "MFG SO",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        86,
+        "MFG SO Cr Dt",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        87,
+        "MFG SO Cr Time",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        88,
+        "MFG RSD",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        89,
+        "MFG SO Type",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        90,
+        "MFG SO Plant",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        91,
+        "MFG SO Storage Location",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        92,
+        "MFG SO CRAD",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        93,
+        "MFG SO RSD",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        94,
+        "MFG SO Qty",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        95,
+        "MFG MO Qty",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        96,
+        "MFG MO GR Qty",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        97,
+        "MFG DN Qty",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        98,
+        "MFG DN GI Qty",
+        "INTEGER",
+        true,
+        null,
+        false
+      ],
+      [
+        99,
+        "850 DOC",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        100,
+        "850 DOC time",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        101,
+        "855 DOC",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        102,
+        "855 DOC time",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        103,
+        "850 DOC Status",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        104,
+        "855 DOC Status",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        105,
+        "Original System",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        106,
+        "From",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ],
+      [
+        107,
+        "库位描述",
+        "VARCHAR(50) COLLATE \"Chinese_PRC_CI_AS\"",
+        true,
+        null,
+        false
+      ]
+    ],
+    "comment": "",
+    "relationships": [
+      {
+        "table1": "CONPD",
+        "table2": "ConDT_Open_PO",
+        "field1": "PN",
+        "field2": "PN",
+        "type": "auto",
+        "description": "CONPD.PN = ConDT_Open_PO.PN",
+        "confidence": 0.8
+      },
+      {
+        "table1": "ConDT_Commit",
+        "table2": "ConDT_Open_PO",
+        "field1": "PN",
+        "field2": "PN",
+        "type": "auto",
+        "description": "ConDT_Commit.PN = ConDT_Open_PO.PN",
+        "confidence": 0.8
+      },
+      {
+        "table1": "ConDT_Commit",
+        "table2": "ConDT_Open_PO",
+        "field1": "Desc",
+        "field2": "Desc",
+        "type": "auto",
+        "description": "ConDT_Commit.Desc = ConDT_Open_PO.Desc",
+        "confidence": 0.8
+      },
+      {
+        "table1": "ConDT_Commit",
+        "table2": "ConDT_Open_PO",
+        "field1": "Plant",
+        "field2": "Plant",
+        "type": "auto",
+        "description": "ConDT_Commit.Plant = ConDT_Open_PO.Plant",
+        "confidence": 0.8
+      },
+      {
+        "table1": "ConDT_Commit",
+        "table2": "ConDT_Open_PO",
+        "field1": "Version",
+        "field2": "Version",
+        "type": "auto",
+        "description": "ConDT_Commit.Version = ConDT_Open_PO.Version",
+        "confidence": 0.8
+      }
+    ],
+    "business_fields": {},
+    "import_time": "2025-07-21 13:02:13"
+  }
+}

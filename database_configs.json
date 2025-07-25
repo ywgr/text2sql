@@ -13,11 +13,17 @@
     },
     "active": true
   },
-  "sqlite_1": {
-    "name": "test",
-    "type": "sqlite",
+  "mssql_2": {
+    "name": " FF_IDSS_Data_CON_BAK",
+    "type": "mssql",
     "config": {
-      "file_path": "new_database.db"
+      "server": "10.97.34.39",
+      "database": "FF_IDSS_Data_CON_BAK",
+      "username": "FF_User",
+      "password": "Grape!0808",
+      "driver": "ODBC Driver 18 for SQL Server",
+      "encrypt": "no",
+      "trust_server_certificate": "yes"
     },
     "active": true
   }

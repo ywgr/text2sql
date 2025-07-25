@@ -1,0 +1,2227 @@
+{
+  "products": {
+    "ttl": {
+      "PN": "ttl",
+      "Roadmap Family": "ttl",
+      "Group": "ttl",
+      "Model": "ttl",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90V2001HCP": {
+      "PN": "90V2001HCP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I5",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90V2001KCP": {
+      "PN": "90V2001KCP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90V2001LCP": {
+      "PN": "90V2001LCP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90V2001YCP": {
+      "PN": "90V2001YCP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I5",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90V20022CP": {
+      "PN": "90V20022CP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90V20023CP": {
+      "PN": "90V20023CP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90V2002CCP": {
+      "PN": "90V2002CCP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90V2002ECP": {
+      "PN": "90V2002ECP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I5",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90VH0045CP": {
+      "PN": "90VH0045CP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I5",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90VK0032CD": {
+      "PN": "90VK0032CD",
+      "Roadmap Family": "天逸510A",
+      "Group": "天逸510A_I7",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90VT0008CD": {
+      "PN": "90VT0008CD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I5",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90VT003JCD": {
+      "PN": "90VT003JCD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I3",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90VT0054CD": {
+      "PN": "90VT0054CD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I7",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90VT0056CD": {
+      "PN": "90VT0056CD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I5",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90VT0057CD": {
+      "PN": "90VT0057CD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I5",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90VT0058CD": {
+      "PN": "90VT0058CD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I3",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90VT007NCD": {
+      "PN": "90VT007NCD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I5",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90VT007PCD": {
+      "PN": "90VT007PCD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I7",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90VT007RCD": {
+      "PN": "90VT007RCD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I3",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90VT007SCD": {
+      "PN": "90VT007SCD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I5",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90VT007UCD": {
+      "PN": "90VT007UCD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I5",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90VT007VCD": {
+      "PN": "90VT007VCD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I5",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90VT00AMCD": {
+      "PN": "90VT00AMCD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I5",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90VT00F9CD": {
+      "PN": "90VT00F9CD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I3",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90VT00FACD": {
+      "PN": "90VT00FACD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I5",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90VT00FBCD": {
+      "PN": "90VT00FBCD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I5",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90VT00FCCD": {
+      "PN": "90VT00FCCD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I5",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90VT00FDCD": {
+      "PN": "90VT00FDCD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I7",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90VT00FECD": {
+      "PN": "90VT00FECD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I7",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90VT00FFCD": {
+      "PN": "90VT00FFCD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I3",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90VT00FGCD": {
+      "PN": "90VT00FGCD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I5",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90VT00FHCD": {
+      "PN": "90VT00FHCD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I5",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90W2003FCP": {
+      "PN": "90W2003FCP",
+      "Roadmap Family": "小新 Mini",
+      "Group": "小新 Mini_I5",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90W20062CP": {
+      "PN": "90W20062CP",
+      "Roadmap Family": "小新 Mini",
+      "Group": "小新 Mini_I7",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90W2008UCP": {
+      "PN": "90W2008UCP",
+      "Roadmap Family": "小新 Mini",
+      "Group": "小新 Mini_I7",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90W2008VCP": {
+      "PN": "90W2008VCP",
+      "Roadmap Family": "小新 Mini",
+      "Group": "小新 Mini_I5",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90WB0007CD": {
+      "PN": "90WB0007CD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I5",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90WB0008CD": {
+      "PN": "90WB0008CD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I5",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90WB000CCD": {
+      "PN": "90WB000CCD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I5",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90WB000DCD": {
+      "PN": "90WB000DCD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I5",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X00002CP": {
+      "PN": "90X00002CP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X00004CP": {
+      "PN": "90X00004CP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I5",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X00005CP": {
+      "PN": "90X00005CP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I5",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X0000CCP": {
+      "PN": "90X0000CCP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I5",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X0001JCP": {
+      "PN": "90X0001JCP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X0005RCP": {
+      "PN": "90X0005RCP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I5",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X0009FCP": {
+      "PN": "90X0009FCP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X000A3CP": {
+      "PN": "90X000A3CP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I5",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X000A4CP": {
+      "PN": "90X000A4CP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I5",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X000A5CP": {
+      "PN": "90X000A5CP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X000A6CP": {
+      "PN": "90X000A6CP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X000C9CP": {
+      "PN": "90X000C9CP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X000CACP": {
+      "PN": "90X000CACP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I5",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X000CBCP": {
+      "PN": "90X000CBCP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I5",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X000CCCP": {
+      "PN": "90X000CCCP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X000CDCP": {
+      "PN": "90X000CDCP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I5",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X000CECP": {
+      "PN": "90X000CECP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X000CFCP": {
+      "PN": "90X000CFCP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I5",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X000CGCP": {
+      "PN": "90X000CGCP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X000CHCP": {
+      "PN": "90X000CHCP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I5",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X000CJCP": {
+      "PN": "90X000CJCP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I5",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X000CKCP": {
+      "PN": "90X000CKCP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I5",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X000D5CP": {
+      "PN": "90X000D5CP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I5",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X000DACP": {
+      "PN": "90X000DACP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X000DBCP": {
+      "PN": "90X000DBCP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X000DCCP": {
+      "PN": "90X000DCCP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I5",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X000DDCP": {
+      "PN": "90X000DDCP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I5",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X000DTCP": {
+      "PN": "90X000DTCP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X000DUCP": {
+      "PN": "90X000DUCP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X000DVCP": {
+      "PN": "90X000DVCP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I5",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X000DWCP": {
+      "PN": "90X000DWCP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I5",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X000DYCP": {
+      "PN": "90X000DYCP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I5",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X000EPCP": {
+      "PN": "90X000EPCP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I5",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X000EQCP": {
+      "PN": "90X000EQCP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I5",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X000ERCP": {
+      "PN": "90X000ERCP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X000ESCP": {
+      "PN": "90X000ESCP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X000FUCP": {
+      "PN": "90X000FUCP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I5",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X000G1CP": {
+      "PN": "90X000G1CP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X000H8CP": {
+      "PN": "90X000H8CP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I5",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X000H9CP": {
+      "PN": "90X000H9CP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X000HACP": {
+      "PN": "90X000HACP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I5",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X000HBCP": {
+      "PN": "90X000HBCP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I5",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X000HCCP": {
+      "PN": "90X000HCCP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X20000CD": {
+      "PN": "90X20000CD",
+      "Roadmap Family": "天逸510A",
+      "Group": "天逸510A_I5",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X2000HCD": {
+      "PN": "90X2000HCD",
+      "Roadmap Family": "天逸510A",
+      "Group": "天逸510A_I5",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X2000JCD": {
+      "PN": "90X2000JCD",
+      "Roadmap Family": "天逸510A",
+      "Group": "天逸510A_I5",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X2000TCD": {
+      "PN": "90X2000TCD",
+      "Roadmap Family": "天逸510A",
+      "Group": "天逸510A_I5",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X2004MCD": {
+      "PN": "90X2004MCD",
+      "Roadmap Family": "天逸510A",
+      "Group": "天逸510A_I7",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X2004NCD": {
+      "PN": "90X2004NCD",
+      "Roadmap Family": "天逸510A",
+      "Group": "天逸510A_I5",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X2004RCD": {
+      "PN": "90X2004RCD",
+      "Roadmap Family": "天逸510A",
+      "Group": "天逸510A_I3",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X2005UCD": {
+      "PN": "90X2005UCD",
+      "Roadmap Family": "天逸510A",
+      "Group": "天逸510A_I7",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X2005VCD": {
+      "PN": "90X2005VCD",
+      "Roadmap Family": "天逸510A",
+      "Group": "天逸510A_I5",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X2005WCD": {
+      "PN": "90X2005WCD",
+      "Roadmap Family": "天逸510A",
+      "Group": "天逸510A_I5",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X2005XCD": {
+      "PN": "90X2005XCD",
+      "Roadmap Family": "天逸510A",
+      "Group": "天逸510A_I5",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X20060CD": {
+      "PN": "90X20060CD",
+      "Roadmap Family": "天逸510A",
+      "Group": "天逸510A_I3",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90X2006VCD": {
+      "PN": "90X2006VCD",
+      "Roadmap Family": "天逸510A",
+      "Group": "天逸510A_I3",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90XF0000CP": {
+      "PN": "90XF0000CP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I9",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90XF0008CP": {
+      "PN": "90XF0008CP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I9",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90XF0009CP": {
+      "PN": "90XF0009CP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90XF000ACP": {
+      "PN": "90XF000ACP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90XF000BCP": {
+      "PN": "90XF000BCP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I9",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90XF000CCP": {
+      "PN": "90XF000CCP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90XF000DCP": {
+      "PN": "90XF000DCP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90XF000FCP": {
+      "PN": "90XF000FCP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90XF000GCP": {
+      "PN": "90XF000GCP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90XF000HCP": {
+      "PN": "90XF000HCP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90XF000JCP": {
+      "PN": "90XF000JCP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90XF000KCP": {
+      "PN": "90XF000KCP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90XF0012CP": {
+      "PN": "90XF0012CP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90XF0013CP": {
+      "PN": "90XF0013CP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I9",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90XF0014CP": {
+      "PN": "90XF0014CP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I9",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90XF0015CP": {
+      "PN": "90XF0015CP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90XF0016CP": {
+      "PN": "90XF0016CP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90XF0017CP": {
+      "PN": "90XF0017CP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90XF0018CP": {
+      "PN": "90XF0018CP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I9",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90XF0019CP": {
+      "PN": "90XF0019CP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90XF001ACP": {
+      "PN": "90XF001ACP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90XF001BCP": {
+      "PN": "90XF001BCP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90XF001CCP": {
+      "PN": "90XF001CCP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90XF001DCP": {
+      "PN": "90XF001DCP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90XF001FCP": {
+      "PN": "90XF001FCP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I9",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90XS000GCD": {
+      "PN": "90XS000GCD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I5",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90XS000RCD": {
+      "PN": "90XS000RCD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I7",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90XS001TCD": {
+      "PN": "90XS001TCD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I5",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90XS0037CD": {
+      "PN": "90XS0037CD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I7",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90XS0039CD": {
+      "PN": "90XS0039CD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I5",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90XS003ECD": {
+      "PN": "90XS003ECD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I5",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90XS003JCD": {
+      "PN": "90XS003JCD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I5",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90XS004CCD": {
+      "PN": "90XS004CCD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I3",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90XS005BCD": {
+      "PN": "90XS005BCD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I5",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90XS005CCD": {
+      "PN": "90XS005CCD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I5",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90XS005DCD": {
+      "PN": "90XS005DCD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I7",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90XS0060CD": {
+      "PN": "90XS0060CD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I5",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90XW0000CD": {
+      "PN": "90XW0000CD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I7",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90XW0001CD": {
+      "PN": "90XW0001CD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I5",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90XW003VCD": {
+      "PN": "90XW003VCD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I5",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90XW003WCD": {
+      "PN": "90XW003WCD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I7",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90YM0000CP": {
+      "PN": "90YM0000CP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90YM0003CP": {
+      "PN": "90YM0003CP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I9",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90YM0004CP": {
+      "PN": "90YM0004CP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90YM0005CP": {
+      "PN": "90YM0005CP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I9",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90YM0007CP": {
+      "PN": "90YM0007CP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I9",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90YM0008CP": {
+      "PN": "90YM0008CP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I9",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90YM0009CP": {
+      "PN": "90YM0009CP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90YM000ACP": {
+      "PN": "90YM000ACP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I9",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90YM000BCP": {
+      "PN": "90YM000BCP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90YM000CCP": {
+      "PN": "90YM000CCP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I9",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90YM000DCP": {
+      "PN": "90YM000DCP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I9",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90YQ0000CP": {
+      "PN": "90YQ0000CP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90YQ0001CP": {
+      "PN": "90YQ0001CP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90YQ0002CP": {
+      "PN": "90YQ0002CP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90YQ0004CP": {
+      "PN": "90YQ0004CP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90YS0000CP": {
+      "PN": "90YS0000CP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I9",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90YS0002CP": {
+      "PN": "90YS0002CP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I9",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90YS0003CP": {
+      "PN": "90YS0003CP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I9",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "90YS0004CP": {
+      "PN": "90YS0004CP",
+      "Roadmap Family": "拯救者",
+      "Group": "拯救者_I9",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "91AY0006CP": {
+      "PN": "91AY0006CP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "91AY000DCP": {
+      "PN": "91AY000DCP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "91AY000KCP": {
+      "PN": "91AY000KCP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I9",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "91AY000LCP": {
+      "PN": "91AY000LCP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "91AY000MCP": {
+      "PN": "91AY000MCP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "91AY001JCP": {
+      "PN": "91AY001JCP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I9",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "91AY001KCP": {
+      "PN": "91AY001KCP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "91AY0028CP": {
+      "PN": "91AY0028CP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "91AY0033CP": {
+      "PN": "91AY0033CP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I9",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "91AY003BCP": {
+      "PN": "91AY003BCP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "91AY003JCP": {
+      "PN": "91AY003JCP",
+      "Roadmap Family": "GeekPro",
+      "Group": "GeekPro_I7",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "91B10000CD": {
+      "PN": "91B10000CD",
+      "Roadmap Family": "天逸510A",
+      "Group": "天逸510A_I5",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "91B10005CD": {
+      "PN": "91B10005CD",
+      "Roadmap Family": "天逸510A",
+      "Group": "天逸510A_I7",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "91B1000TCD": {
+      "PN": "91B1000TCD",
+      "Roadmap Family": "天逸510A",
+      "Group": "天逸510A_I7",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "91B1000UCD": {
+      "PN": "91B1000UCD",
+      "Roadmap Family": "天逸510A",
+      "Group": "天逸510A_I5",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "91B1000VCD": {
+      "PN": "91B1000VCD",
+      "Roadmap Family": "天逸510A",
+      "Group": "天逸510A_I5",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "91CF0003CD": {
+      "PN": "91CF0003CD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I5",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "91D00001CD": {
+      "PN": "91D00001CD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I5",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "91D00002CD": {
+      "PN": "91D00002CD",
+      "Roadmap Family": "天逸510S",
+      "Group": "天逸510S_I5",
+      "Model": "BOX",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "91DF000KCP": {
+      "PN": "91DF000KCP",
+      "Roadmap Family": "刃7000P",
+      "Group": "刃7000P_I9",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "91DF000LCP": {
+      "PN": "91DF000LCP",
+      "Roadmap Family": "刃7000P",
+      "Group": "刃7000P_I9",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "91DF0036CP": {
+      "PN": "91DF0036CP",
+      "Roadmap Family": "刃7000P",
+      "Group": "刃7000P_I9",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "91DF0037CP": {
+      "PN": "91DF0037CP",
+      "Roadmap Family": "刃7000P",
+      "Group": "刃7000P_I9",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "91DF0038CP": {
+      "PN": "91DF0038CP",
+      "Roadmap Family": "刃7000P",
+      "Group": "刃7000P_I9",
+      "Model": "Gaming",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0FY00NSCD": {
+      "PN": "F0FY00NSCD",
+      "Roadmap Family": "AIO 小新",
+      "Group": "AIO 小新_Ryzen5",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0G1011XCD": {
+      "PN": "F0G1011XCD",
+      "Roadmap Family": "AIO 小新",
+      "Group": "AIO 小新_I3",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0G1011YCD": {
+      "PN": "F0G1011YCD",
+      "Roadmap Family": "AIO 小新",
+      "Group": "AIO 小新_I3",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0GH01D4CD": {
+      "PN": "F0GH01D4CD",
+      "Roadmap Family": "AIO 小新",
+      "Group": "AIO 小新_I5",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0GH01D5CD": {
+      "PN": "F0GH01D5CD",
+      "Roadmap Family": "AIO 小新",
+      "Group": "AIO 小新_I5",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0GH01HRCD": {
+      "PN": "F0GH01HRCD",
+      "Roadmap Family": "AIO 小新",
+      "Group": "AIO 小新_I5",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0GH01HSCD": {
+      "PN": "F0GH01HSCD",
+      "Roadmap Family": "AIO 小新",
+      "Group": "AIO 小新_I5",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0GJ00Y7CD": {
+      "PN": "F0GJ00Y7CD",
+      "Roadmap Family": "AIO 小新",
+      "Group": "AIO 小新_I5",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0GJ00Y8CD": {
+      "PN": "F0GJ00Y8CD",
+      "Roadmap Family": "AIO 小新",
+      "Group": "AIO 小新_I5",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0GJ0121CD": {
+      "PN": "F0GJ0121CD",
+      "Roadmap Family": "AIO 小新",
+      "Group": "AIO 小新_I5",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0GJ0122CD": {
+      "PN": "F0GJ0122CD",
+      "Roadmap Family": "AIO 小新",
+      "Group": "AIO 小新_I5",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0HJ002RCD": {
+      "PN": "F0HJ002RCD",
+      "Roadmap Family": "AIO 小新Pro",
+      "Group": "AIO 小新Pro_I9",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0HJ003WCD": {
+      "PN": "F0HJ003WCD",
+      "Roadmap Family": "AIO 小新Pro",
+      "Group": "AIO 小新Pro_I9",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0HK000XCD": {
+      "PN": "F0HK000XCD",
+      "Roadmap Family": "AIO 小新Pro",
+      "Group": "AIO 小新Pro_I5",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0HK000YCD": {
+      "PN": "F0HK000YCD",
+      "Roadmap Family": "AIO 小新Pro",
+      "Group": "AIO 小新Pro_I5",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0HK001XCD": {
+      "PN": "F0HK001XCD",
+      "Roadmap Family": "AIO 小新Pro",
+      "Group": "AIO 小新Pro_I5",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0HK0021CD": {
+      "PN": "F0HK0021CD",
+      "Roadmap Family": "AIO 小新Pro",
+      "Group": "AIO 小新Pro_I5",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0HK002HCD": {
+      "PN": "F0HK002HCD",
+      "Roadmap Family": "AIO 小新Pro",
+      "Group": "AIO 小新Pro_I5",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0HM0001CD": {
+      "PN": "F0HM0001CD",
+      "Roadmap Family": "AIO 小新Pro",
+      "Group": "AIO 小新Pro_I5",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0HM0002CD": {
+      "PN": "F0HM0002CD",
+      "Roadmap Family": "AIO 小新",
+      "Group": "AIO 小新_I5",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0HM0003CD": {
+      "PN": "F0HM0003CD",
+      "Roadmap Family": "AIO 小新",
+      "Group": "AIO 小新_I5",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0HM0004CD": {
+      "PN": "F0HM0004CD",
+      "Roadmap Family": "AIO 小新Pro",
+      "Group": "AIO 小新Pro_I5",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0HM0006CD": {
+      "PN": "F0HM0006CD",
+      "Roadmap Family": "AIO 小新Pro",
+      "Group": "AIO 小新Pro_I9",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0HM0007CD": {
+      "PN": "F0HM0007CD",
+      "Roadmap Family": "AIO 小新Pro",
+      "Group": "AIO 小新Pro_I9",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0HM0031CD": {
+      "PN": "F0HM0031CD",
+      "Roadmap Family": "AIO 小新",
+      "Group": "AIO 小新_I7",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0HM0032CD": {
+      "PN": "F0HM0032CD",
+      "Roadmap Family": "AIO 小新",
+      "Group": "AIO 小新_I7",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0HM005ECD": {
+      "PN": "F0HM005ECD",
+      "Roadmap Family": "AIO 小新Pro",
+      "Group": "AIO 小新Pro_I7",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0HM005FCD": {
+      "PN": "F0HM005FCD",
+      "Roadmap Family": "AIO 小新Pro",
+      "Group": "AIO 小新Pro_I7",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0HM00L2CD": {
+      "PN": "F0HM00L2CD",
+      "Roadmap Family": "AIO 小新Pro",
+      "Group": "AIO 小新Pro_I9",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0HM00L3CD": {
+      "PN": "F0HM00L3CD",
+      "Roadmap Family": "AIO 小新Pro",
+      "Group": "AIO 小新Pro_I9",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0HM00L4CD": {
+      "PN": "F0HM00L4CD",
+      "Roadmap Family": "AIO 小新Pro",
+      "Group": "AIO 小新Pro_I7",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0HM00L5CD": {
+      "PN": "F0HM00L5CD",
+      "Roadmap Family": "AIO 小新Pro",
+      "Group": "AIO 小新Pro_I7",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0HM00L6CD": {
+      "PN": "F0HM00L6CD",
+      "Roadmap Family": "AIO 小新Pro",
+      "Group": "AIO 小新Pro_I5",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0HM00L7CD": {
+      "PN": "F0HM00L7CD",
+      "Roadmap Family": "AIO 小新Pro",
+      "Group": "AIO 小新Pro_I5",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0HM00L8CD": {
+      "PN": "F0HM00L8CD",
+      "Roadmap Family": "AIO 小新",
+      "Group": "AIO 小新_I5",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0HM00L9CD": {
+      "PN": "F0HM00L9CD",
+      "Roadmap Family": "AIO 小新",
+      "Group": "AIO 小新_I5",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0HM00LACD": {
+      "PN": "F0HM00LACD",
+      "Roadmap Family": "AIO 小新",
+      "Group": "AIO 小新_I7",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0HM00LBCD": {
+      "PN": "F0HM00LBCD",
+      "Roadmap Family": "AIO 小新",
+      "Group": "AIO 小新_I7",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0HM00SNCD": {
+      "PN": "F0HM00SNCD",
+      "Roadmap Family": "AIO 小新Pro",
+      "Group": "AIO 小新Pro_Unknown",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0HM00SPCD": {
+      "PN": "F0HM00SPCD",
+      "Roadmap Family": "AIO 小新Pro",
+      "Group": "AIO 小新Pro_Unknown",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0HN0001CD": {
+      "PN": "F0HN0001CD",
+      "Roadmap Family": "AIO 小新",
+      "Group": "AIO 小新_I5",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0HN002ACD": {
+      "PN": "F0HN002ACD",
+      "Roadmap Family": "AIO 小新",
+      "Group": "AIO 小新_I5",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0HN00KECD": {
+      "PN": "F0HN00KECD",
+      "Roadmap Family": "AIO 小新",
+      "Group": "AIO 小新_I5",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0HN00KFCD": {
+      "PN": "F0HN00KFCD",
+      "Roadmap Family": "AIO 小新",
+      "Group": "AIO 小新_I5",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0HQ0002CD": {
+      "PN": "F0HQ0002CD",
+      "Roadmap Family": "AIO 小新",
+      "Group": "AIO 小新_I5",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0HQ0003CD": {
+      "PN": "F0HQ0003CD",
+      "Roadmap Family": "AIO 小新",
+      "Group": "AIO 小新_I5",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0HQ005PCD": {
+      "PN": "F0HQ005PCD",
+      "Roadmap Family": "AIO 小新",
+      "Group": "AIO 小新_I5",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0HQ005QCD": {
+      "PN": "F0HQ005QCD",
+      "Roadmap Family": "AIO 小新",
+      "Group": "AIO 小新_I5",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0HQ006RCD": {
+      "PN": "F0HQ006RCD",
+      "Roadmap Family": "AIO 小新",
+      "Group": "AIO 小新_I5",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0HQ006SCD": {
+      "PN": "F0HQ006SCD",
+      "Roadmap Family": "AIO 小新",
+      "Group": "AIO 小新_I5",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0HX0001CD": {
+      "PN": "F0HX0001CD",
+      "Roadmap Family": "AIO 小新Pro",
+      "Group": "AIO 小新Pro_I7",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0HX0003CD": {
+      "PN": "F0HX0003CD",
+      "Roadmap Family": "AIO 小新Pro",
+      "Group": "AIO 小新Pro_I7",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0HX001DCD": {
+      "PN": "F0HX001DCD",
+      "Roadmap Family": "AIO 小新Pro",
+      "Group": "AIO 小新Pro_I7",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0J20018CD": {
+      "PN": "F0J20018CD",
+      "Roadmap Family": "AIO 小新Pro",
+      "Group": "AIO 小新Pro_I9",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0J20019CD": {
+      "PN": "F0J20019CD",
+      "Roadmap Family": "AIO 小新Pro",
+      "Group": "AIO 小新Pro_I9",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0J2003DCD": {
+      "PN": "F0J2003DCD",
+      "Roadmap Family": "AIO 小新Pro",
+      "Group": "AIO 小新Pro_I5",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0J60001CD": {
+      "PN": "F0J60001CD",
+      "Roadmap Family": "AIO 小新",
+      "Group": "AIO 小新_Unknown",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0J60036CD": {
+      "PN": "F0J60036CD",
+      "Roadmap Family": "AIO 小新",
+      "Group": "AIO 小新_Unknown",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0J60037CD": {
+      "PN": "F0J60037CD",
+      "Roadmap Family": "AIO 小新",
+      "Group": "AIO 小新_Unknown",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0JC0000CD": {
+      "PN": "F0JC0000CD",
+      "Roadmap Family": "AIO 小新",
+      "Group": "AIO 小新_I5",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0JC0001CD": {
+      "PN": "F0JC0001CD",
+      "Roadmap Family": "AIO 小新",
+      "Group": "AIO 小新_I5",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0JE0000CD": {
+      "PN": "F0JE0000CD",
+      "Roadmap Family": "AIO 小新",
+      "Group": "AIO 小新_I5",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0JE0001CD": {
+      "PN": "F0JE0001CD",
+      "Roadmap Family": "AIO 小新",
+      "Group": "AIO 小新_I5",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0JE0002CD": {
+      "PN": "F0JE0002CD",
+      "Roadmap Family": "AIO 小新",
+      "Group": "AIO 小新_I5",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    },
+    "F0JE0003CD": {
+      "PN": "F0JE0003CD",
+      "Roadmap Family": "AIO 小新",
+      "Group": "AIO 小新_I5",
+      "Model": "AIO",
+      "import_time": "2025-07-21 10:17:06",
+      "source_table": "CONPD",
+      "source_database": "FF_IDSS_Dev_FF"
+    }
+  },
+  "business_rules": {
+    "选择 产品是 [roadmap family] ": {
+      "condition": "510S, geek, 小新，拯救者，小新pro ",
+      "action": "where  [roadmap family]   like  '% XX%'     and  [group]='ttl'                  ---XX 是 510S、geek、 小新，拯救者，小新pro ",
+      "priority": "高",
+      "status": "启用",
+      "create_time": "2025-07-21 10:22:14"
+    }
+  }
+}
