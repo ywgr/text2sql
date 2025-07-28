@@ -20,7 +20,7 @@ class LocalConfig:
     CHROMA_PERSIST = True
     
     # SQLite数据库配置
-    SQLITE_DB_FILE = "test_database.db"
+ #   SQLITE_DB_FILE = "test_database.db"
     
     # 系统配置
     LOG_LEVEL = "INFO"
@@ -82,5 +82,5 @@ if os.getenv("DEEPSEEK_API_KEY"):
 if os.getenv("CHROMA_DB_PATH"):
     LocalConfig.CHROMA_DB_PATH = os.getenv("CHROMA_DB_PATH")
 
-if os.getenv("SQLITE_DB_FILE"):
-    LocalConfig.SQLITE_DB_FILE = os.getenv("SQLITE_DB_FILE")
+# if os.getenv("SQLITE_DB_FILE"):
+#    LocalConfig.SQLITE_DB_FILE = os.getenv("SQLITE_DB_FILE")

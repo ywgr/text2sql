@@ -103,9 +103,7 @@ def show_sql_query_page_v25(system):
                             st.text_area("LLM 分析:", analysis, height=200, disabled=True)
                             if validation_analysis and not validation_analysis.startswith("API调用失败"):
                                 st.text_area("校验分析:", validation_analysis, height=150, disabled=True)
-                            # 新增：本地字段校验
-                            local_field_check_result = system.local_field_check(sql)
-                            st.text_area("本地字段校验:", local_field_check_result, height=100, disabled=True)
+                            # 本地字段校验已去除
                         
                         # 字段验证
                         field_validation = system.validate_sql_fields(sql)

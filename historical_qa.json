@@ -1,0 +1,56 @@
+[
+  {
+    "question": "拯救者I7 25年7月的全链库存、预测、全链库存周转，未清PO 数量， PN ,  本月备货，下月备货, odm",
+    "sql": "SELECT a.[PN], a.[Roadmap Family], a.[Group], a.[Model], b.[全链库存], b.[FCST], b.[全链库存DOI], c.[SD PO Open Qty] AS [未清PO Qty], d.[本月备货], d.[下月备货], c.[ODM] FROM [FF_IDSS_Dev_FF].[dbo].[CONPD] a JOIN [FF_IDSS_Dev_FF].[dbo].[dtsupply_summary] b ON a.[Roadmap Family] = b.[Roadmap Family] AND a.[Group] = b.[Group] AND a.[Model] = b.[Model] LEFT JOIN [FF_IDSS_Data_CON_BAK].[dbo].[ConDT_Open_PO] c ON a.[PN] = c.[PN] LEFT JOIN [FF_IDSS_Dev_FF].[dbo].[备货NY] d ON a.[PN] = d.[MTM] WHERE a.[Group] = '拯救者_I7' AND b.[自然年] = 2025 AND b.[财月] = '7月' AND b.[财周] = 'ttl'",
+    "timestamp": "2025-07-21 16:44:04",
+    "rating": "ok"
+  },
+  {
+    "question": "510S 25年7月的全链库存、预测、全链库存周转，未清PO 数量， PN ,  本月备货，下月备货, odm",
+    "sql": "SELECT a.[PN], a.[Roadmap Family], a.[Group], a.[Model], b.[全链库存], b.[FCST], b.[全链库存DOI], c.[SD PO Open Qty] AS [未清PO Qty], d.[本月备货], d.[下月备货], c.[ODM] FROM [FF_IDSS_Dev_FF].[dbo].[CONPD] a JOIN [FF_IDSS_Dev_FF].[dbo].[dtsupply_summary] b ON a.[Roadmap Family] = b.[Roadmap Family] AND a.[Group] = b.[Group] AND a.[Model] = b.[Model] LEFT JOIN [FF_IDSS_Data_CON_BAK].[dbo].[ConDT_Open_PO] c ON a.[PN] = c.[PN] LEFT JOIN [FF_IDSS_Dev_FF].[dbo].[备货NY] d ON a.[PN] = d.[MTM] WHERE a.[Roadmap Family] LIKE '%510S%' AND b.[自然年] = 2025 AND b.[财月] = '7月' AND b.[财周] = 'ttl'",
+    "timestamp": "2025-07-21 16:47:27",
+    "rating": "ok"
+  },
+  {
+    "question": "510S 本月全链库存",
+    "sql": "SELECT [全链库存] FROM [FF_IDSS_Dev_FF].[dbo].[dtsupply_summary] WHERE [Roadmap Family] LIKE '%510S%' AND [自然年] = YEAR(GETDATE()) AND [财月] = CAST(MONTH(GETDATE()) AS VARCHAR) + '月' AND [财周] = 'ttl' AND [Group] = 'ttl'",
+    "timestamp": "2025-07-22 09:40:39",
+    "rating": "ok"
+  },
+  {
+    "question": "geek 本月全链库存",
+    "sql": "SELECT [全链库存] FROM [FF_IDSS_Dev_FF].[dbo].[dtsupply_summary] WHERE [Roadmap Family] LIKE '%geek%' AND [Group] = 'ttl' AND [自然年] = YEAR(GETDATE()) AND [财月] = CAST(MONTH(GETDATE()) AS VARCHAR) + '月' AND [财周] = 'ttl' AND [Group]='ttl'",
+    "timestamp": "2025-07-22 11:23:58",
+    "rating": "ok"
+  },
+  {
+    "question": "拯救者本月全链库存和全链库存周转",
+    "sql": "SELECT [FF_IDSS_Dev_FF].[dbo].[dtsupply_summary].[全链库存], [FF_IDSS_Dev_FF].[dbo].[dtsupply_summary].[全链库存DOI] FROM [FF_IDSS_Dev_FF].[dbo].[dtsupply_summary] WHERE [FF_IDSS_Dev_FF].[dbo].[dtsupply_summary].[Roadmap Family] = '拯救者' AND [FF_IDSS_Dev_FF].[dbo].[dtsupply_summary].[自然年] = YEAR(GETDATE()) AND [FF_IDSS_Dev_FF].[dbo].[dtsupply_summary].[财月] = CAST(MONTH(GETDATE()) AS VARCHAR) + '月' AND [FF_IDSS_Dev_FF].[dbo].[dtsupply_summary].[财周] = 'ttl' AND [FF_IDSS_Dev_FF].[dbo].[dtsupply_summary].[Group] = 'ttl' AND [group]='ttl'",
+    "timestamp": "2025-07-22 11:25:34",
+    "rating": "ok"
+  },
+  {
+    "question": "拯救者I9 本月全链库存",
+    "sql": "SELECT [FF_IDSS_Dev_FF].[dbo].[dtsupply_summary].[全链库存] FROM [FF_IDSS_Dev_FF].[dbo].[dtsupply_summary] WHERE [FF_IDSS_Dev_FF].[dbo].[dtsupply_summary].[Roadmap Family] LIKE '%拯救者%' AND [FF_IDSS_Dev_FF].[dbo].[dtsupply_summary].[Group] LIKE '%拯救者_I9%' AND [FF_IDSS_Dev_FF].[dbo].[dtsupply_summary].[自然年] = YEAR(GETDATE()) AND [FF_IDSS_Dev_FF].[dbo].[dtsupply_summary].[财月] = CAST(MONTH(GETDATE()) AS VARCHAR) + '月' AND [FF_IDSS_Dev_FF].[dbo].[dtsupply_summary].[财周] = 'ttl'",
+    "timestamp": "2025-07-22 12:26:27",
+    "rating": "ok"
+  },
+  {
+    "question": "510S 本月全链库存",
+    "sql": "SELECT [FF_IDSS_Dev_FF].[dbo].[dtsupply_summary].[全链库存] FROM [FF_IDSS_Dev_FF].[dbo].[dtsupply_summary] WHERE [FF_IDSS_Dev_FF].[dbo].[dtsupply_summary].[Roadmap Family] LIKE '%510S%' AND [FF_IDSS_Dev_FF].[dbo].[dtsupply_summary].[自然年] = YEAR(GETDATE()) AND [FF_IDSS_Dev_FF].[dbo].[dtsupply_summary].[财月] = CAST(MONTH(GETDATE()) AS VARCHAR) + '月' AND [FF_IDSS_Dev_FF].[dbo].[dtsupply_summary].[财周] = 'ttl' AND [FF_IDSS_Dev_FF].[dbo].[dtsupply_summary].[group] LIKE '%ttl%'",
+    "timestamp": "2025-07-22 17:53:59",
+    "rating": "ok"
+  },
+  {
+    "question": "geek25年7月全链库存",
+    "sql": "SELECT [FF_IDSS_Dev_FF].[dbo].[dtsupply_summary].[全链库存] FROM [FF_IDSS_Dev_FF].[dbo].[dtsupply_summary] WHERE [FF_IDSS_Dev_FF].[dbo].[dtsupply_summary].[Roadmap Family] LIKE '%geek%' AND [FF_IDSS_Dev_FF].[dbo].[dtsupply_summary].[自然年] = 2025 AND [FF_IDSS_Dev_FF].[dbo].[dtsupply_summary].[财月] = '7月' AND [FF_IDSS_Dev_FF].[dbo].[dtsupply_summary].[财周] = 'ttl' AND [FF_IDSS_Dev_FF].[dbo].[dtsupply_summary].[group] LIKE '%ttl%'",
+    "timestamp": "2025-07-24 15:26:26",
+    "rating": "ok"
+  },
+  {
+    "question": "物料编码为F0HM00LACD 的po 号和PO 数量",
+    "sql": "SELECT [PO], [Qty] FROM [FF_IDSS_Data_CON_BAK].[dbo].[ConDT_Open_PO] WHERE [PN] = 'F0HM00LACD'",
+    "timestamp": "2025-07-24 15:43:58",
+    "rating": "ok"
+  }
+]

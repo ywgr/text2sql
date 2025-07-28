@@ -7,7 +7,14 @@
       "Model": "ttl",
       "import_time": "2025-07-21 10:17:06",
       "source_table": "CONPD",
-      "source_database": "FF_IDSS_Dev_FF"
+      "source_database": "FF_IDSS_Dev_FF",
+      "name": "消台",
+      "category": "",
+      "price": 0.0,
+      "status": "活跃",
+      "supplier": "",
+      "description": "",
+      "update_time": "2025-07-28 10:34:45"
     },
     "90V2001HCP": {
       "PN": "90V2001HCP",

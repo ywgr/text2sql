@@ -1519,32 +1519,25 @@ INVALID
                 logger.info("使用缓存的SQL结果")
                 return cached_sql, "从缓存获取SQL（性能优化）"
             processed_question = self.apply_business_rules(question)
-            # 构建合并生成与校验的Prompt
-            schema_info = self.get_database_schema(db_config)
-            allowed_tables = set(self.table_knowledge.keys()) if self.table_knowledge else set()
-            if not allowed_tables:
-                return "", "错误：没有已导入知识库的表，请先在表结构管理中导入表。"
-            relationships_info = []
-            for rel in self.sql_validator.relationships.get("relationships", []):
-                relationships_info.append(f"{rel['table1']}.{rel['field1']} <-> {rel['table2']}.{rel['field2']} ({rel['description']})")
-            prompt = f"""
-你是SQL生成与自检专家。请根据下方"表结构知识库"和"表关系定义"，\n1. 先生成满足"用户问题"的SQL；\n2. 再自检SQL的所有JOIN是否完全符合"表关系定义"，如有不符请自我修正，最终输出合规SQL；\n3. 输出结构化分析过程（如：每个JOIN是否合规、如有修正说明原因）。\n\n【表结构知识库】\n{schema_info}\n\n【表关系定义】\n{relationships_info}\n\n【业务规则映射】\n{json.dumps(self.business_rules, ensure_ascii=False, indent=2)}\n\n【用户问题】\n{question}\n\n【输出要求】\n1. 先输出最终合规SQL（只输出SQL，不要多余解释）；\n2. 再输出结构化分析过程。\n"""
-            logger.info("正在调用DeepSeek生成SQL并自检...")
-            st.info("正在调用AI生成SQL并自检...")
+            # 构建严格Prompt
+            prompt = generate_strict_sql_prompt(
+                question=processed_question,
+                business_rules=self.business_rules
+            )
+            logger.info("正在调用DeepSeek生成SQL并合规分析...")
+            st.info("正在调用AI生成SQL并合规分析...")
             response = self.call_deepseek_api(prompt)
-            logger.info("AI生成与自检完成")
-            st.info("AI生成与自检完成")
+            logger.info("AI生成与合规分析完成")
+            st.info("AI生成与合规分析完成")
             # 解析返回，分离SQL和分析
             sql = ""
             analysis = ""
             import re
-            # 尝试提取SQL（假设SQL在最前面，后面是分析）
             sql_match = re.search(r"```sql[\s\S]*?([\s\S]+?)```", response, re.IGNORECASE)
             if sql_match:
                 sql = sql_match.group(1).strip()
                 analysis = response.replace(sql_match.group(0), '').strip()
-            else:
-                # 兼容无代码块格式
+                    else:
                 lines = response.strip().split('\n')
                 sql_lines = []
                 analysis_lines = []
@@ -1554,7 +1547,7 @@ INVALID
                         sql_lines.append(line)
                     elif in_sql and (line.strip() == '' or line.strip().startswith('--')):
                         sql_lines.append(line)
-                    else:
+            else:
                         in_sql = False
                         analysis_lines.append(line)
                 sql = '\n'.join(sql_lines).strip()
@@ -1568,7 +1561,7 @@ INVALID
             cleaned_sql = self.force_product_fields_like(cleaned_sql)
             cleaned_sql = self.apply_conditional_rules(cleaned_sql, question)
             self.sql_cache.set(cache_key, cleaned_sql)
-            # 返回SQL和分析过程
+            # 每次都用本次新分析
             return cleaned_sql, analysis
         except Exception as e:
             logger.error(f"SQL生成失败: {e}")
@@ -2103,6 +2096,74 @@ SQL语句：
                 if q and sql:
                     self.vn.train(question=q, sql=sql)
         st.success("✅ 企业级知识库训练完成！")
+
+def generate_strict_sql_prompt(
+    question,
+    table_knowledge_path='text2sql/table_knowledge.json',
+    relationships_path='text2sql/table_relationships.json',
+    business_rules=None
+):
+    """
+    自动生成严格SQL生成与校验Prompt，强制LLM只能用知识库表和关系。
+    :param question: 用户问题
+    :param table_knowledge_path: 表结构json路径
+    :param relationships_path: 关系表json路径
+    :param business_rules: 业务规则dict或None
+    :return: prompt字符串
+    """
+    import json
+    # 读取表结构
+    with open(table_knowledge_path, 'r', encoding='utf-8') as f:
+        table_knowledge = json.load(f)
+    # 读取关系表
+    with open(relationships_path, 'r', encoding='utf-8') as f:
+        relationships = json.load(f)
+    # 结构化表结构
+    table_lines = []
+    for tbl, info in table_knowledge.items():
+        cols = info.get('columns', [])
+        table_lines.append(f"- {tbl}: {', '.join(cols)}")
+    table_struct = '\n'.join(table_lines)
+    # 结构化关系表
+    rel_lines = []
+    for rel in relationships.get('relationships', []):
+        t1 = rel.get('table1', '')
+        t2 = rel.get('table2', '')
+        f1 = rel.get('field1', '')
+        f2 = rel.get('field2', '')
+        cond = rel.get('join_condition', rel.get('description', ''))
+        if t1 and t2 and f1 and f2:
+            rel_lines.append(f"- {t1}.{f1} <-> {t2}.{f2}  条件: {cond}")
+        elif cond:
+            rel_lines.append(f"- {cond}")
+    rel_struct = '\n'.join(rel_lines)
+    # 业务规则
+    rules_str = json.dumps(business_rules, ensure_ascii=False, indent=2) if business_rules else ''
+    # 拼接Prompt
+    prompt = f"""
+【最高规则】
+1. 你只能使用下方"表结构知识库"中列出的表和字段，禁止出现其它表和字段。
+2. 所有JOIN只能使用下方"表关系定义"中明确列出的关系，禁止自创或猜测JOIN。
+3. 生成SQL后，必须逐条校验所有表和JOIN，发现不合规必须剔除或修正，并在分析中详细说明。
+4. 如有任何不合规，输出"严重错误：出现未授权表/字段/关系"，并给出修正建议。
+
+【表结构知识库】
+{table_struct}
+
+【表关系定义】
+{rel_struct}
+
+【业务规则映射】
+{rules_str}
+
+【用户问题】
+{question}
+
+【输出要求】
+1. 先输出最终合规SQL（只输出SQL，不要多余解释）；
+2. 再输出结构化分析过程，逐条列出每个表和JOIN的合规性。
+"""
+    return prompt
 
 def main():
     """主函数"""

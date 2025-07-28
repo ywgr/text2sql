@@ -1,0 +1,298 @@
+{
+  "relationships": [
+    {
+      "table1": "",
+      "table2": "",
+      "field1": "",
+      "field2": "",
+      "relation_type": "auto",
+      "confidence": 0.8,
+      "description": "CONPD.Roadmap Family = dtsupply_summary.Roadmap Family",
+      "is_validated": true,
+      "join_condition": ""
+    },
+    {
+      "table1": "",
+      "table2": "",
+      "field1": "",
+      "field2": "",
+      "relation_type": "auto",
+      "confidence": 0.8,
+      "description": "CONPD.Group = dtsupply_summary.Group",
+      "is_validated": true,
+      "join_condition": ""
+    },
+    {
+      "table1": "",
+      "table2": "",
+      "field1": "",
+      "field2": "",
+      "relation_type": "auto",
+      "confidence": 0.8,
+      "description": "CONPD.Model = dtsupply_summary.Model",
+      "is_validated": true,
+      "join_condition": ""
+    },
+    {
+      "table1": "",
+      "table2": "",
+      "field1": "",
+      "field2": "",
+      "relation_type": "auto",
+      "confidence": 0.8,
+      "description": "CONPD.Roadmap Family = dtsupply_summary.Roadmap Family",
+      "is_validated": true,
+      "join_condition": ""
+    },
+    {
+      "table1": "",
+      "table2": "",
+      "field1": "",
+      "field2": "",
+      "relation_type": "auto",
+      "confidence": 0.8,
+      "description": "CONPD.Group = dtsupply_summary.Group",
+      "is_validated": true,
+      "join_condition": ""
+    },
+    {
+      "table1": "",
+      "table2": "",
+      "field1": "",
+      "field2": "",
+      "relation_type": "auto",
+      "confidence": 0.8,
+      "description": "ConDT_Commit.财月 = dtsupply_summary.财月",
+      "is_validated": true,
+      "join_condition": ""
+    },
+    {
+      "table1": "",
+      "table2": "",
+      "field1": "",
+      "field2": "",
+      "relation_type": "auto",
+      "confidence": 0.8,
+      "description": "ConDT_Commit.财年 = dtsupply_summary.财年",
+      "is_validated": true,
+      "join_condition": ""
+    },
+    {
+      "table1": "",
+      "table2": "",
+      "field1": "",
+      "field2": "",
+      "relation_type": "auto",
+      "confidence": 0.8,
+      "description": "CONPD.Roadmap Family = dtsupply_summary.Roadmap Family",
+      "is_validated": true,
+      "join_condition": ""
+    },
+    {
+      "table1": "",
+      "table2": "",
+      "field1": "",
+      "field2": "",
+      "relation_type": "auto",
+      "confidence": 0.8,
+      "description": "CONPD.Group = dtsupply_summary.Group",
+      "is_validated": true,
+      "join_condition": ""
+    },
+    {
+      "table1": "",
+      "table2": "",
+      "field1": "",
+      "field2": "",
+      "relation_type": "manual",
+      "confidence": 1.0,
+      "description": "CONPD.PN <-> 备货NY.MTM",
+      "is_validated": true,
+      "join_condition": ""
+    },
+    {
+      "table1": "",
+      "table2": "",
+      "field1": "",
+      "field2": "",
+      "relation_type": "auto",
+      "confidence": 0.8,
+      "description": "CONPD.Model = dtsupply_summary.Model",
+      "is_validated": true,
+      "join_condition": ""
+    },
+    {
+      "table1": "",
+      "table2": "",
+      "field1": "",
+      "field2": "",
+      "relation_type": "auto",
+      "confidence": 0.8,
+      "description": "CONPD.Roadmap Family = dtsupply_summary.Roadmap Family",
+      "is_validated": true,
+      "join_condition": ""
+    },
+    {
+      "table1": "",
+      "table2": "",
+      "field1": "",
+      "field2": "",
+      "relation_type": "auto",
+      "confidence": 0.8,
+      "description": "CONPD.Group = dtsupply_summary.Group",
+      "is_validated": true,
+      "join_condition": ""
+    },
+    {
+      "table1": "",
+      "table2": "",
+      "field1": "",
+      "field2": "",
+      "relation_type": "auto",
+      "confidence": 0.8,
+      "description": "CONPD.PN = ConDT_Commit.PN",
+      "is_validated": true,
+      "join_condition": ""
+    },
+    {
+      "table1": "",
+      "table2": "",
+      "field1": "",
+      "field2": "",
+      "relation_type": "auto",
+      "confidence": 0.8,
+      "description": "CONPD.PN = ConDT_Open_PO.PN",
+      "is_validated": true,
+      "join_condition": ""
+    },
+    {
+      "table1": "",
+      "table2": "",
+      "field1": "",
+      "field2": "",
+      "relation_type": "manual",
+      "confidence": 1.0,
+      "description": "CONPD.PN <-> 备货NY.MTM",
+      "is_validated": true,
+      "join_condition": ""
+    },
+    {
+      "table1": "",
+      "table2": "",
+      "field1": "",
+      "field2": "",
+      "relation_type": "auto",
+      "confidence": 0.8,
+      "description": "CONPD.PN = ConDT_Commit.PN",
+      "is_validated": true,
+      "join_condition": ""
+    },
+    {
+      "table1": "",
+      "table2": "",
+      "field1": "",
+      "field2": "",
+      "relation_type": "auto",
+      "confidence": 0.8,
+      "description": "ConDT_Commit.财月 = dtsupply_summary.财月",
+      "is_validated": true,
+      "join_condition": ""
+    },
+    {
+      "table1": "",
+      "table2": "",
+      "field1": "",
+      "field2": "",
+      "relation_type": "auto",
+      "confidence": 0.8,
+      "description": "ConDT_Commit.财年 = dtsupply_summary.财年",
+      "is_validated": true,
+      "join_condition": ""
+    },
+    {
+      "table1": "",
+      "table2": "",
+      "field1": "",
+      "field2": "",
+      "relation_type": "auto",
+      "confidence": 0.8,
+      "description": "ConDT_Commit.PN = ConDT_Open_PO.PN",
+      "is_validated": true,
+      "join_condition": ""
+    },
+    {
+      "table1": "",
+      "table2": "",
+      "field1": "",
+      "field2": "",
+      "relation_type": "auto",
+      "confidence": 0.8,
+      "description": "ConDT_Commit.Desc = ConDT_Open_PO.Desc",
+      "is_validated": true,
+      "join_condition": ""
+    },
+    {
+      "table1": "",
+      "table2": "",
+      "field1": "",
+      "field2": "",
+      "relation_type": "auto",
+      "confidence": 0.8,
+      "description": "ConDT_Commit.Plant = ConDT_Open_PO.Plant",
+      "is_validated": true,
+      "join_condition": ""
+    },
+    {
+      "table1": "",
+      "table2": "",
+      "field1": "",
+      "field2": "",
+      "relation_type": "auto",
+      "confidence": 0.8,
+      "description": "CONPD.PN = ConDT_Open_PO.PN",
+      "is_validated": true,
+      "join_condition": ""
+    },
+    {
+      "table1": "",
+      "table2": "",
+      "field1": "",
+      "field2": "",
+      "relation_type": "auto",
+      "confidence": 0.8,
+      "description": "ConDT_Commit.PN = ConDT_Open_PO.PN",
+      "is_validated": true,
+      "join_condition": ""
+    },
+    {
+      "table1": "",
+      "table2": "",
+      "field1": "",
+      "field2": "",
+      "relation_type": "auto",
+      "confidence": 0.8,
+      "description": "ConDT_Commit.Desc = ConDT_Open_PO.Desc",
+      "is_validated": true,
+      "join_condition": ""
+    },
+    {
+      "table1": "",
+      "table2": "",
+      "field1": "",
+      "field2": "",
+      "relation_type": "auto",
+      "confidence": 0.8,
+      "description": "ConDT_Commit.Plant = ConDT_Open_PO.Plant",
+      "is_validated": true,
+      "join_condition": ""
+    }
+  ],
+  "metadata": {
+    "last_updated": "2025-07-25 16:51:25",
+    "version": "1.0",
+    "description": "从表结构知识库自动同步的关联关系",
+    "total_relationships": 26,
+    "auto_relationships": 0,
+    "manual_relationships": 0
+  }
+}

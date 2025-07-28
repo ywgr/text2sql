@@ -328,7 +328,7 @@
         false
       ]
     ],
-    "comment": "",
+    "comment": "by 时间维度： 年、财月、财周  和by 产品维度  ： [group]/[roadmap family]/model/ttl   数据全链库存，全链库存周转，预测全链库存，sellout预测，但PO 需求时间预计全链库存等",
     "relationships": [
       {
         "table1": "CONPD",
@@ -395,7 +395,9 @@
       }
     ],
     "business_fields": {},
-    "import_time": "2025-07-21 10:05:01"
+    "import_time": "2025-07-21 10:05:01",
+    "database": "FF_IDSS_Dev_FF",
+    "schema": "dbo"
   },
   "CONPD": {
     "columns": [
@@ -438,7 +440,7 @@
         false
       ]
     ],
-    "comment": "",
+    "comment": "产品数据表，分PN 、group ， [roadmap family], model  四级， ",
     "relationships": [
       {
         "table1": "CONPD",
@@ -513,8 +515,13 @@
         "confidence": 0.8
       }
     ],
-    "business_fields": {},
-    "import_time": "2025-07-21 10:05:54"
+    "business_fields": {
+      "Group": "Roadmap Family +cpu",
+      "Model": "AIO /BOX/Gaming/TTL"
+    },
+    "import_time": "2025-07-21 10:05:54",
+    "database": "FF_IDSS_Dev_FF",
+    "schema": "dbo"
   },
   "备货NY": {
     "columns": [
@@ -775,7 +782,7 @@
         false
       ]
     ],
-    "comment": "",
+    "comment": "基于财年、财月、财周、PN 的commit  ，并由对应预测版本和commit 版本",
     "relationships": [
       {
         "table1": "CONPD",
@@ -830,19 +837,12 @@
         "type": "auto",
         "description": "ConDT_Commit.Plant = ConDT_Open_PO.Plant",
         "confidence": 0.8
-      },
-      {
-        "table1": "ConDT_Commit",
-        "table2": "ConDT_Open_PO",
-        "field1": "Version",
-        "field2": "Version",
-        "type": "auto",
-        "description": "ConDT_Commit.Version = ConDT_Open_PO.Version",
-        "confidence": 0.8
       }
     ],
     "business_fields": {},
-    "import_time": "2025-07-21 12:59:54"
+    "import_time": "2025-07-21 12:59:54",
+    "database": "FF_IDSS_Data_CON_BAK",
+    "schema": "dbo"
   },
   "ConDT_Open_PO": {
     "columns": [
@@ -1858,18 +1858,11 @@
         "type": "auto",
         "description": "ConDT_Commit.Plant = ConDT_Open_PO.Plant",
         "confidence": 0.8
-      },
-      {
-        "table1": "ConDT_Commit",
-        "table2": "ConDT_Open_PO",
-        "field1": "Version",
-        "field2": "Version",
-        "type": "auto",
-        "description": "ConDT_Commit.Version = ConDT_Open_PO.Version",
-        "confidence": 0.8
       }
     ],
     "business_fields": {},
-    "import_time": "2025-07-21 13:02:13"
+    "import_time": "2025-07-21 13:02:13",
+    "database": "FF_IDSS_Data_CON_BAK",
+    "schema": "dbo"
   }
 }

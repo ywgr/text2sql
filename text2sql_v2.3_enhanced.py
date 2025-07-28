@@ -144,6 +144,7 @@ except ImportError:
 2. 所有字段必须真实存在且属于正确的表
 3. 多表查询必须使用正确的JOIN和ON条件，只能使用知识库中的表关系数据
 4. 只输出SQL语句，不要任何解释
+5. 【最高优化原则】：如果所有需要的字段和过滤条件都存在于同一个表中，必须只使用单表查询，禁止进行任何不必要的JOIN操作。
 
 SQL语句："""
     
@@ -175,6 +176,13 @@ SQL语句："""
         def clear(self):
             self.cache.clear()
             self.access_count.clear()
+
+        def remove(self, cache_key: str):
+            """从缓存中移除指定的键"""
+            if cache_key in self.cache:
+                del self.cache[cache_key]
+                if cache_key in self.access_count:
+                    del self.access_count[cache_key]
     
     class UserFriendlyErrorHandler:
         def format_issues(self, issues: List[str]) -> Dict[str, List[str]]:
@@ -377,6 +385,9 @@ class Text2SQLSystemV23:
         
         # 业务规则和术语映射
         self.business_rules = self.load_business_rules()
+        
+        # V2.3 增强: 历史问答知识库
+        self.historical_qa = self.load_historical_qa()
         
         # 提示词模板
         self.prompt_templates = self.load_prompt_templates()
@@ -622,6 +633,7 @@ class Text2SQLSystemV23:
 5. 应用业务规则进行术语转换
 6. 参考表结构知识库理解表和字段含义
 7. 结合产品知识库理解业务逻辑
+8. 【最高优化原则】：如果所有需要的字段和过滤条件都存在于同一个表中，必须只使用单表查询，禁止进行任何不必要的JOIN操作。
 
 SQL语句：""",
 
@@ -800,45 +812,185 @@ INVALID
                 "客户和商品之间没有直接关联，需要通过订单表和订单明细表间接关联"
             )
 
+    def auto_add_full_table_name(self, sql: str, db_config: dict) -> str:
+        import re
+        db_name = db_config["config"].get("database") or db_config["config"].get("db") or ""
+        default_schema = "dbo"
+        table_full_map = {}
+        for table, info in self.table_knowledge.items():
+            schema = info.get("schema") or default_schema
+            database = info.get("database") or db_name
+            full_name = f"[{database}].[{schema}].[{table}]"
+            table_full_map[table.lower()] = full_name
+        # 支持 FROM/JOIN/LEFT JOIN/RIGHT JOIN/INNER JOIN/OUTER JOIN/LEFT OUTER JOIN/RIGHT OUTER JOIN
+        def table_replacer(match):
+            join_type = match.group(1)
+            tbl = match.group(2)
+            alias = match.group(3) or ""
+            tbl_clean = tbl.replace('[', '').replace(']', '').split('.')[-1].lower()
+            full = table_full_map.get(tbl_clean, tbl)
+            return f"{join_type} {full}{alias}"
+        # 匹配所有 JOIN 变体和 FROM
+        sql = re.sub(r'(FROM|JOIN|LEFT JOIN|RIGHT JOIN|INNER JOIN|OUTER JOIN|LEFT OUTER JOIN|RIGHT OUTER JOIN)\s+((?:\[[^\]]+\]\.)*\[[^\]]+\]|\w+)(\s+\w+)?', table_replacer, sql, flags=re.IGNORECASE)
+        return sql
+
+    def auto_correct_field_ownership(self, sql: str) -> str:
+        import re
+        # 解析所有表别名
+        alias_pattern = re.compile(r'(FROM|JOIN|LEFT JOIN|RIGHT JOIN|INNER JOIN|OUTER JOIN|LEFT OUTER JOIN|RIGHT OUTER JOIN)\s+((?:\[[^\]]+\]\.)*\[[^\]]+\]|\w+)(\s+\w+)?', re.IGNORECASE)
+        alias_map = {}
+        for match in alias_pattern.finditer(sql):
+            tbl = match.group(2)
+            alias = (match.group(3) or '').strip()
+            tbl_clean = tbl.replace('[', '').replace(']', '').split('.')[-1]
+            if alias:
+                alias_map[alias] = tbl_clean
+            else:
+                # 没有别名时，表名本身也可作为别名
+                alias_map[tbl_clean] = tbl_clean
+        # 字段归属修正
+        field_pattern = re.compile(r'(\b\w+)\.\[?(\w+)\]?')
+        corrections = []
+        for m in field_pattern.finditer(sql):
+            alias = m.group(1)
+            field = m.group(2)
+            table = alias_map.get(alias)
+            if table and table in self.table_knowledge:
+                columns = self.table_knowledge[table].get('columns', [])
+                if field not in columns:
+                    # 查找其他表是否有该字段
+                    for other_alias, other_table in alias_map.items():
+                        if other_table != table and other_table in self.table_knowledge:
+                            if field in self.table_knowledge[other_table].get('columns', []):
+                                # 自动修正为正确别名
+                                corrections.append((f'{alias}.[{field}]', f'{other_alias}.[{field}]'))
+                                break
+        # 应用修正
+        for wrong, right in corrections:
+            sql = sql.replace(wrong, right)
+        return sql
+
+    def llm_sql_fullname_correction(self, sql: str, db_config: dict) -> str:
+        import json
+        db_name = db_config["config"].get("database") or db_config["config"].get("db") or ""
+        prompt = f"""
+你是SQL专家。请对下方SQL做如下修正：
+1. 检查所有 FROM/JOIN/LEFT JOIN/RIGHT JOIN/INNER JOIN/OUTER JOIN/LEFT OUTER JOIN/RIGHT OUTER JOIN 后的表名。
+2. 如果表名未加数据库名和schema（如 [库名].[schema].[表名]），请自动补全，补全信息请严格参考下方表结构知识库。
+3. 只输出最终可直接执行的SQL，不要解释。
+
+表结构知识库（含库名/模式/表/字段）：
+{json.dumps(self.table_knowledge, ensure_ascii=False, indent=2)}
+
+原始SQL：
+{sql}
+"""
+        # 调用大模型
+        if self.vn:
+            result = self.vn.generate_sql(prompt)
+        else:
+            result = self.call_deepseek_api(prompt)
+        # 只提取SQL部分
+        return self.clean_sql(result)
+
+    def force_full_table_name(self, sql: str, db_config: dict) -> str:
+        import re
+        db_name = db_config["config"].get("database") or db_config["config"].get("db") or ""
+        default_schema = "dbo"
+        table_full_map = {}
+        for table, info in self.table_knowledge.items():
+            schema = info.get("schema") or default_schema
+            database = info.get("database") or db_name
+            full_name = f"[{database}].[{schema}].[{table}]"
+            table_full_map[table.lower()] = full_name
+        join_types = [
+            "LEFT OUTER JOIN", "RIGHT OUTER JOIN", "INNER JOIN", "OUTER JOIN",
+            "LEFT JOIN", "RIGHT JOIN", "JOIN", "FROM"
+        ]
+        join_types_regex = "|".join([re.escape(jt) for jt in join_types])
+        def table_replacer(match):
+            join_type = match.group(1)
+            tbl = match.group(2)
+            alias = match.group(3) or ""
+            tbl_clean = tbl.replace('[', '').replace(']', '').split('.')[-1].lower()
+            full = table_full_map.get(tbl_clean, tbl)
+            return f"{join_type} {full}{alias}"
+        sql = re.sub(
+            rf'({join_types_regex})\s+((?:\[[^\]]+\]\.)*\[[^\]]+\]|\w+)(\s+\w+)?',
+            table_replacer,
+            sql,
+            flags=re.IGNORECASE
+        )
+        return sql
+
     @monitor_performance
-    def generate_sql_enhanced(self, question: str, db_config: Dict) -> tuple:
-        """V2.3增强版SQL生成 - 整合V2.2核心优化"""
+    def generate_sql_enhanced(self, question: str, db_config: Dict, force_single_table: bool = False) -> tuple:
+        """V2.3增强版SQL生成 - 整合V2.2核心优化 + 两阶段查询分析"""
         try:
             # 1. 检查缓存
             schema_hash = hashlib.md5(str(self.table_knowledge).encode()).hexdigest()[:8]
             rules_hash = hashlib.md5(str(self.business_rules).encode()).hexdigest()[:8]
             cache_key = self.sql_cache.get_cache_key(question, schema_hash, rules_hash)
+            st.session_state['current_cache_key_v23'] = cache_key # V2.3增强：为评价功能存储缓存键
             
             cached_sql = self.sql_cache.get(cache_key)
             if cached_sql:
                 logger.info("使用缓存的SQL结果")
                 return cached_sql, "从缓存获取SQL（性能优化）"
             
-            # 2. 获取数据库结构信息
-            schema_info = self.get_database_schema(db_config)
-            
-            # 3. 构建表名白名单 - 只允许使用已导入知识库的表
-            allowed_tables = set(self.table_knowledge.keys()) if self.table_knowledge else set()
-            if not allowed_tables:
-                return "", "错误：没有已导入知识库的表，请先在表结构管理中导入表。"
-            
-            # 4. 应用业务规则转换
+            # 2. 应用业务规则转换
             processed_question = self.apply_business_rules(question)
-            
-            # 5. 构建SQL生成上下文
-            context = SQLGenerationContext(
-                question=question,
-                processed_question=processed_question,
-                schema_info=schema_info,
-                table_knowledge=self.table_knowledge,
-                product_knowledge=self.product_knowledge,
-                business_rules=self.business_rules,
-                allowed_tables=allowed_tables,
-                db_config=db_config
-            )
-            
-            # 6. 使用增强的提示词构建器
-            prompt = self.prompt_builder.build_comprehensive_prompt(context)
+
+            # ==================================================================
+            # V2.3 终极优化：强制单表查询逻辑
+            if force_single_table:
+                sufficient_table = self._find_sufficient_single_table_by_keywords(processed_question)
+                if sufficient_table:
+                    st.info(f"强制单表模式：已锁定表'{sufficient_table}'，将执行单表查询优化。")
+                    prompt = self._build_single_table_prompt(processed_question, sufficient_table)
+                    # ... (后续SQL生成和验证流程)
+                else:
+                    # 如果找不到合适的单表，则按正常流程
+                    st.info("强制单表模式：未找到能满足所有关键词的单表，将执行标准多表查询。")
+                    # ... (正常的多表查询流程)
+            else:
+                # 原有的两阶段分析流程
+                required_entities = self._extract_required_entities(processed_question)
+                sufficient_table = None
+                if required_entities and 'required_columns' in required_entities:
+                    sufficient_table = self._find_sufficient_single_table(required_entities['required_columns'])
+                
+                if sufficient_table:
+                    st.info(f"智能分析：检测到单表'{sufficient_table}'足以回答该问题，将执行单表查询优化。")
+                    prompt = self._build_single_table_prompt(processed_question, sufficient_table)
+                else:
+                    # 多表查询策略
+                    st.info("智能分析：问题需要多表关联，将执行标准查询流程。")
+                    schema_info = self.get_database_schema(db_config)
+                    allowed_tables = set(self.table_knowledge.keys()) if self.table_knowledge else set()
+                    if not allowed_tables:
+                        return "", "错误：没有已导入知识库的表，请先在表结构管理中导入表。"
+                    
+                    historical_examples = self.find_similar_historical_examples(question)
+                    context = SQLGenerationContext(
+                        question=question,
+                        processed_question=processed_question,
+                        schema_info=schema_info,
+                        table_knowledge=self.table_knowledge,
+                        product_knowledge=self.product_knowledge,
+                        business_rules=self.business_rules,
+                        allowed_tables=allowed_tables,
+                        db_config=db_config
+                    )
+                    prompt = self.prompt_builder.build_comprehensive_prompt(context)
+                    if historical_examples:
+                        examples_str = "\n\n【请参考以下高质量的成功范例】:\n"
+                        for ex in historical_examples:
+                            examples_str += f"/* 范例: 当用户问: '{ex['question']}' */\n/* 正确的SQL是: */\n{ex['sql']}\n---\n"
+                        if "用户问题：" in prompt:
+                            prompt = prompt.replace("用户问题：", examples_str + "\n用户问题：")
+                        else:
+                            prompt += examples_str
             
             # 7. 调用DeepSeek API生成SQL
             if self.vn:
@@ -848,8 +1000,25 @@ INVALID
             
             # 8. 清理SQL
             cleaned_sql = self.clean_sql(sql)
+            # 自动加全名
+            cleaned_sql = self.auto_add_full_table_name(cleaned_sql, db_config)
+            # 字段归属自动修正
+            cleaned_sql = self.auto_correct_field_ownership(cleaned_sql)
+            # LLM智能全名补全
+            cleaned_sql = self.llm_sql_fullname_correction(cleaned_sql, db_config)
+            # 本地正则兜底强制全名
+            cleaned_sql = self.force_full_table_name(cleaned_sql, db_config)
             
-            # 9. 使用V2.2统一验证器进行全面验证
+            # 9. 使用V2.2统一验证器进行全面验证 (上下文需要根据策略调整)
+            if sufficient_table:
+                 # 如果是单表，验证上下文也应该简化
+                 context = SQLGenerationContext(
+                    question=question, processed_question=processed_question,
+                    schema_info=f"表名: {sufficient_table}\n字段: {', '.join(self.table_knowledge[sufficient_table]['columns'])}",
+                    table_knowledge={sufficient_table: self.table_knowledge[sufficient_table]},
+                    product_knowledge=self.product_knowledge, business_rules=self.business_rules,
+                    allowed_tables={sufficient_table}, db_config=db_config
+                 )
             validation_result = self.sql_validator.validate_comprehensive(cleaned_sql, context)
             
             if not validation_result.is_valid:
@@ -886,6 +1055,78 @@ INVALID
         except Exception as e:
             logger.error(f"SQL生成失败: {e}")
             return "", f"SQL生成失败: {str(e)}"
+
+    def _extract_required_entities(self, question: str) -> Optional[Dict]:
+        """阶段一：使用LLM提取问题所需的字段实体，不再提取表"""
+        try:
+            prompt = f"""你是一个数据分析专家。请分析以下用户问题，并识别出回答该问题所必需的所有字段。
+
+【表结构知识库】
+{json.dumps(self.table_knowledge, ensure_ascii=False, indent=2)}
+
+【用户问题】
+"{question}"
+
+【输出要求】
+- 只输出一个JSON对象，不要任何解释。
+- JSON格式为：{{"required_columns": ["字段1", "字段2", ...]}}
+- `required_columns` 必须包含问题中明确提到或隐含需要的所有查询和过滤字段。
+
+JSON输出：
+"""
+            response = self.call_deepseek_api(prompt)
+            # 清理并解析JSON
+            json_str = response.strip().replace("```json", "").replace("```", "")
+            entities = json.loads(json_str)
+            # 确保返回的格式正确
+            if 'required_columns' in entities and isinstance(entities['required_columns'], list):
+                return entities
+            return None
+        except Exception as e:
+            logger.error(f"实体提取失败: {e}")
+            return None
+
+    def _find_sufficient_single_table(self, required_columns: List[str]) -> Optional[str]:
+        """阶段二：根据所需字段，判断是否存在单个表可以满足所有需求"""
+        if not required_columns:
+            return None
+        
+        required_cols_set = set(col.lower() for col in required_columns)
+        
+        for table_name, table_info in self.table_knowledge.items():
+            table_cols_set = set(col.lower() for col in table_info.get('columns', []))
+            if required_cols_set.issubset(table_cols_set):
+                return table_name  # 找到一个表包含了所有必需字段
+        
+        return None
+
+    def _build_single_table_prompt(self, question: str, table_name: str) -> str:
+        """阶段三：构建一个严格限制的单表查询Prompt"""
+        
+        single_table_knowledge = {table_name: self.table_knowledge[table_name]}
+        
+        return f"""你是一个专业的SQL专家，并且严格遵守指令。
+
+【最高指令】
+你本次任务必须且只能使用 `{table_name}` 这一张表来生成SQL查询，禁止使用任何JOIN或查询其他任何表。
+
+【表结构知识库】
+{json.dumps(single_table_knowledge, ensure_ascii=False, indent=2)}
+
+【业务规则映射】
+{json.dumps(self.business_rules, ensure_ascii=False, indent=2)}
+
+【用户问题】
+"{question}"
+
+【严格要求】
+1. 必须只使用 `{table_name}` 表。
+2. 禁止使用JOIN。
+3. 所有字段必须真实存在于 `{table_name}` 表中。
+4. 只输出SQL语句，不要任何解释。
+
+SQL语句：
+"""
     
     @monitor_performance
     def generate_sql_multi_table_enhanced(self, question: str, db_config: Dict) -> tuple:
@@ -935,6 +1176,14 @@ INVALID
                 
                 # 解析结构化响应
                 sql, reasoning_process = self._parse_structured_response(sql_response)
+                # 自动加全名
+                sql = self.auto_add_full_table_name(sql, db_config)
+                # 字段归属自动修正
+                sql = self.auto_correct_field_ownership(sql)
+                # LLM智能全名补全
+                sql = self.llm_sql_fullname_correction(sql, db_config)
+                # 本地正则兜底强制全名
+                sql = self.force_full_table_name(sql, db_config)
                 
                 if not sql:
                     return "", f"多表SQL生成失败：无法解析生成的SQL\n推理过程：\n{reasoning_process}"
@@ -1188,6 +1437,85 @@ INVALID
             logger.error(f"保存提示词模板失败: {e}")
             return False
 
+    def load_historical_qa(self) -> List[Dict]:
+        """加载历史问答知识库"""
+        qa_file = "historical_qa.json"
+        try:
+            if os.path.exists(qa_file):
+                with open(qa_file, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+        except Exception as e:
+            logger.error(f"加载历史问答知识库失败: {e}")
+        return []
+
+    def save_historical_qa(self):
+        """保存历史问答知识库"""
+        qa_file = "historical_qa.json"
+        try:
+            with open(qa_file, 'w', encoding='utf-8') as f:
+                json.dump(self.historical_qa, f, ensure_ascii=False, indent=2)
+            return True
+        except Exception as e:
+            logger.error(f"保存历史问答知识库失败: {e}")
+            return False
+
+    def add_historical_qa(self, question: str, sql: str):
+        """添加一条正确的历史问答"""
+        # 避免重复添加
+        for item in self.historical_qa:
+            if item["question"] == question and item["sql"] == sql:
+                st.toast("此条记录已存在于历史知识库中。")
+                return
+        
+        self.historical_qa.append({
+            "question": question,
+            "sql": sql,
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "rating": "ok"
+        })
+        self.save_historical_qa()
+
+    def find_similar_historical_examples(self, question: str, n: int = 2) -> List[Dict]:
+        """从历史库中查找相似问题"""
+        if not self.historical_qa:
+            return []
+        
+        questions = [item["question"] for item in self.historical_qa]
+        # 使用difflib查找最相似的问题
+        similar_questions = get_close_matches(question, questions, n=n, cutoff=0.7)
+        
+        examples = []
+        for q in similar_questions:
+            for item in self.historical_qa:
+                if item["question"] == q:
+                    examples.append(item)
+                    break
+        return examples
+
+    def _find_sufficient_single_table_by_keywords(self, question: str) -> Optional[str]:
+        """(强制单表模式)通过关键词匹配查找最合适的单表"""
+        import re
+        # 提取问题中的所有名词和潜在字段名 (简化版)
+        keywords = set(re.findall(r'\b[A-Za-z_][A-Za-z0-9_]*\b', question))
+        
+        best_match_table = None
+        highest_score = 0
+
+        for table_name, table_info in self.table_knowledge.items():
+            table_cols_set = set(col.lower() for col in table_info.get('columns', []))
+            # 计算问题关键词与表字段的交集作为分数
+            score = len(keywords.intersection(table_cols_set))
+            
+            if score > highest_score:
+                highest_score = score
+                best_match_table = table_name
+        
+        # 只有当匹配分数足够高时才采用（避免偶然的匹配）
+        if highest_score > 1: # 至少匹配到2个以上字段
+            return best_match_table
+        
+        return None
+
 def main():
     """主函数"""
     st.set_page_config(
@@ -1255,6 +1583,11 @@ def main():
             system.sql_cache.clear()
             st.success("缓存已清空")
             st.rerun()
+        
+        # V2.3新增：历史知识库统计
+        st.subheader("知识库状态")
+        historical_qa_count = len(system.historical_qa)
+        st.metric("历史优质问答", f"{historical_qa_count} 条")
     
     # 根据选择的页面显示不同内容
     if page == "SQL查询":
@@ -1321,6 +1654,9 @@ def show_sql_query_page_v23(system):
         if 'query_results_v23' not in st.session_state:
             st.session_state.query_results_v23 = None
         
+        # V2.3 终极优化：强制单表查询开关
+        force_single_table = st.checkbox("优先单表查询", value=True, help="当问题所需字段可能存在于单个表时，强制使用单表查询，避免不必要的JOIN。")
+        
         # V2.3增强：显示性能指标
         col_gen, col_perf = st.columns([3, 1])
         
@@ -1331,9 +1667,9 @@ def show_sql_query_page_v23(system):
                         # 获取选中的数据库配置
                         db_config = active_dbs[selected_db]
                         
-                        # 使用V2.3增强版SQL生成
+                        # 使用V2.3增强版SQL生成 (传入新参数)
                         start_time = time.time()
-                        sql, message = system.generate_sql_enhanced(question, db_config)
+                        sql, message = system.generate_sql_enhanced(question, db_config, force_single_table)
                         generation_time = time.time() - start_time
                         
                         if sql:
@@ -1482,6 +1818,32 @@ def show_sql_query_page_v23(system):
                     if st.session_state.current_sql_v23:
                         st.info("SQL性能分析功能开发中...")
     
+            # V2.3增强：SQL评价功能
+            st.subheader("评价本次查询:")
+            col_feedback1, col_feedback2, col_feedback3 = st.columns([1, 1, 3])
+
+            with col_feedback1:
+                if st.button("👍 正确"):
+                    if st.session_state.get('current_question_v23') and st.session_state.get('current_sql_v23'):
+                        system.add_historical_qa(st.session_state.current_question_v23, st.session_state.current_sql_v23)
+                        st.success("感谢评价！已将此优质问答存入历史知识库。")
+                        st.balloons()
+                    else:
+                        st.warning("没有可评价的查询。")
+            
+            with col_feedback2:
+                if st.button("👎 错误"):
+                    if st.session_state.get('current_cache_key_v23'):
+                        system.sql_cache.remove(st.session_state.current_cache_key_v23)
+                        st.success("感谢评价！已从缓存中移除此错误SQL，避免再次使用。")
+                        # 清空当前显示的错误结果
+                        st.session_state.current_sql_v23 = ""
+                        st.session_state.query_results_v23 = None
+                        del st.session_state['current_cache_key_v23']
+                        st.rerun()
+                    else:
+                        st.warning("没有可评价的缓存查询。")
+
     with col2:
         st.subheader("V2.3版本新特性")
         
@@ -1825,12 +2187,14 @@ def show_table_management_page_v23(system):
     with col1:
         st.subheader("数据库表列表")
         
-        # 获取表列表 - 添加性能监控
-        with st.spinner("正在获取表列表..."):
-            start_time = time.time()
-            tables = system.db_manager.get_tables(db_config["type"], db_config["config"])
-            load_time = time.time() - start_time
-            
+        # V2.3 增强：仅在选择数据库后加载表
+        tables = []
+        if selected_db:
+            with st.spinner("正在获取表列表..."):
+                start_time = time.time()
+                tables = system.db_manager.get_tables(db_config["type"], db_config["config"])
+                load_time = time.time() - start_time
+        
         if tables:
             st.info(f"共找到 {len(tables)} 个表 (耗时: {load_time:.2f}s)")
             
@@ -1854,7 +2218,9 @@ def show_table_management_page_v23(system):
                                         "comment": f"从{db_config['name']}自动导入",
                                         "relationships": [],
                                         "business_fields": {},
-                                        "import_time": time.strftime("%Y-%m-%d %H:%M:%S")
+                                        "import_time": time.strftime("%Y-%m-%d %H:%M:%S"),
+                                        "database": db_config["config"].get("database") or db_config["config"].get("db") or "",
+                                        "schema": "dbo",
                                     }
                                     imported_count += 1
                         
@@ -1946,7 +2312,9 @@ def show_table_management_page_v23(system):
                                         "comment": "",
                                         "relationships": [],
                                         "business_fields": {},
-                                        "import_time": time.strftime("%Y-%m-%d %H:%M:%S")
+                                        "import_time": time.strftime("%Y-%m-%d %H:%M:%S"),
+                                        "database": db_config["config"].get("database") or db_config["config"].get("db") or "",
+                                        "schema": "dbo",
                                     }
                                     system.save_table_knowledge()
                                     st.success(f"表 {table} 已导入知识库")
@@ -1972,6 +2340,13 @@ def show_table_management_page_v23(system):
                     col_kb1, col_kb2 = st.columns([2, 1])
                     
                     with col_kb1:
+                        # V2.3增强：数据库和Schema可编辑
+                        current_db = table_info.get("database", "")
+                        new_db = st.text_input("所属数据库:", value=current_db, key=f"db_{table_name}")
+                        
+                        current_schema = table_info.get("schema", "dbo")
+                        new_schema = st.text_input("所属Schema:", value=current_schema, key=f"schema_{table_name}")
+
                         # 表备注编辑
                         current_comment = table_info.get("comment", "")
                         new_comment = st.text_area(
@@ -1981,12 +2356,18 @@ def show_table_management_page_v23(system):
                             height=60
                         )
                         
-                        if new_comment != current_comment:
-                            if st.button(f"保存备注", key=f"save_comment_{table_name}"):
-                                system.table_knowledge[table_name]["comment"] = new_comment
-                                system.save_table_knowledge()
-                                st.success("备注已保存")
-                                st.rerun()
+                        if st.button(f"保存元数据", key=f"save_meta_{table_name}"):
+                            system.table_knowledge[table_name]["database"] = new_db
+                            system.table_knowledge[table_name]["schema"] = new_schema
+                            system.table_knowledge[table_name]["comment"] = new_comment
+                            system.save_table_knowledge()
+                            
+                            # V2.3 增强：强制重新加载知识库并清空缓存
+                            st.session_state.system_v23 = Text2SQLSystemV23()
+                            st.session_state.system_v23.sql_cache.clear()
+                            
+                            st.success("元数据已保存，知识库和缓存已刷新！")
+                            st.rerun()
                         
                         # 字段备注编辑
                         st.write("**字段备注:**")

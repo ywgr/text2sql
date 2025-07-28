@@ -100,5 +100,83 @@
     "description": "",
     "create_time": "2025-07-21 13:45:00",
     "usage_count": 0
+  },
+  "本月": {
+    "type": "时间",
+    "description": "",
+    "create_time": "2025-07-21 17:30:09",
+    "usage_count": 0
+  },
+  "下月": {
+    "type": "时间",
+    "description": "",
+    "create_time": "2025-07-21 17:33:35",
+    "usage_count": 0
+  },
+  "上月": {
+    "type": "时间",
+    "description": "",
+    "create_time": "2025-07-21 17:33:52",
+    "usage_count": 0
+  },
+  "拯救者 ": {
+    "type": "实体",
+    "description": "",
+    "create_time": "2025-07-22 12:24:28",
+    "usage_count": 0
+  },
+  "拯救者 I7": {
+    "type": "实体",
+    "description": "",
+    "create_time": "2025-07-22 12:25:16",
+    "usage_count": 0
+  },
+  "拯救者 I9": {
+    "type": "实体",
+    "description": "",
+    "create_time": "2025-07-22 12:25:26",
+    "usage_count": 0
+  },
+  "510S ": {
+    "type": "实体",
+    "description": "",
+    "create_time": "2025-07-24 17:42:40",
+    "usage_count": 0
+  },
+  "GEEK": {
+    "type": "实体",
+    "description": "",
+    "create_time": "2025-07-24 17:42:58",
+    "usage_count": 0
+  },
+  "小新": {
+    "type": "实体",
+    "description": "",
+    "create_time": "2025-07-24 17:43:41",
+    "usage_count": 0
+  },
+  "小新Pro": {
+    "type": "实体",
+    "description": "",
+    "create_time": "2025-07-24 17:43:53",
+    "usage_count": 0
+  },
+  "消台,CON DT": {
+    "type": "实体",
+    "description": "",
+    "create_time": "2025-07-27 23:53:56",
+    "usage_count": 0
+  },
+  "一体机": {
+    "type": "实体",
+    "description": "",
+    "create_time": "2025-07-27 23:55:07",
+    "usage_count": 0
+  },
+  "供应，commit，CMT": {
+    "type": "实体",
+    "description": "供应是commit ",
+    "create_time": "2025-07-28 11:10:14",
+    "usage_count": 0
   }
 }
