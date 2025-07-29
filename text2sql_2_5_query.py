@@ -246,19 +246,198 @@ class Text2SQLQueryEngine:
 1. 只能根据上方表结构判断字段是否存在，不能凭经验猜测。
 2. 字段名区分大小写。
 3. 只做校验，不做修正。
-4. 只输出“校验分析”。
+4. 只输出"校验分析"。
 """
         # 增加重试机制
         max_retries = 3
         for attempt in range(max_retries):
             try:
                 response = self.vanna.generate_sql(validate_prompt) if self.vanna else self.call_deepseek_api(validate_prompt)
-                return sql, response
+                # 执行本地校验作为补充
+                local_check_result = self.enhanced_local_field_check(sql)
+                # 合并LLM校验和本地校验结果
+                combined_response = f"{response}\n\n{local_check_result}"
+                return sql, combined_response
             except Exception as e:
                 if attempt == max_retries - 1:
-                    return sql, f"LLM校验API调用失败: {e}"
+                    # 即使LLM失败，也执行本地校验
+                    local_check_result = self.enhanced_local_field_check(sql)
+                    return sql, f"LLM校验API调用失败: {e}\n\n{local_check_result}"
                 import time
                 time.sleep(2 * (attempt + 1))
+
+    def enhanced_local_field_check(self, sql):
+        """增强版本地字段校验，支持表别名和关系校验"""
+        import re
+        
+        def norm_table_name(name):
+            if '.' in name:
+                name = name.split('.')[-1]
+            return name.replace('[','').replace(']','').strip().lower()
+        
+        def norm_field_name(name):
+            return name.replace('[','').replace(']','').strip().lower()
+        
+        # 1. 解析表别名映射
+        alias2table = {}
+        from_pattern = r'FROM\s+([\w\[\]\.]+)\s+([a-zA-Z0-9_]+)'
+        join_pattern = r'JOIN\s+([\w\[\]\.]+)\s+([a-zA-Z0-9_]+)'
+        for pat in [from_pattern, join_pattern]:
+            for m in re.findall(pat, sql, re.IGNORECASE):
+                table, alias = m
+                alias2table[alias] = norm_table_name(table)
+        
+        # 2. 字段校验 - 检查所有字段引用
+        field_results = []
+        
+        # 检查SELECT子句中的字段
+        select_pattern = r'([a-zA-Z0-9_]+)\.\[([^\]]+)\]'
+        for alias, field in re.findall(select_pattern, sql):
+            table = alias2table.get(alias)
+            if not table:
+                field_results.append(f"别名[{alias}]未找到对应表")
+                continue
+                
+            matched_table = None
+            for tk in self.table_knowledge:
+                if norm_table_name(tk) == table:
+                    matched_table = tk
+                    break
+            if not matched_table:
+                field_results.append(f"表[{table}]未在知识库中定义")
+                continue
+                
+            # 处理columns字段
+            columns = []
+            for col in self.table_knowledge[matched_table]['columns']:
+                if isinstance(col, dict) and 'name' in col:
+                    columns.append(norm_field_name(col['name']))
+                elif isinstance(col, str):
+                    columns.append(norm_field_name(col))
+                    
+            if norm_field_name(field) in columns:
+                field_results.append(f"表[{matched_table}] 字段[{field}] (别名:{alias}) : 存在")
+            else:
+                field_results.append(f"表[{matched_table}] 字段[{field}] (别名:{alias}) : 不存在")
+        
+        # 检查WHERE子句中的字段
+        where_pattern = r'WHERE\s+(.*?)(?=\s*ORDER\s+BY|\s*GROUP\s+BY|\s*HAVING|\s*$)'
+        where_match = re.search(where_pattern, sql, re.IGNORECASE | re.DOTALL)
+        if where_match:
+            where_clause = where_match.group(1)
+            # 提取WHERE中的字段引用
+            where_field_pattern = r'([a-zA-Z0-9_]+)\.\[([^\]]+)\]'
+            for alias, field in re.findall(where_field_pattern, where_clause):
+                table = alias2table.get(alias)
+                if not table:
+                    field_results.append(f"WHERE中别名[{alias}]未找到对应表")
+                    continue
+                    
+                matched_table = None
+                for tk in self.table_knowledge:
+                    if norm_table_name(tk) == table:
+                        matched_table = tk
+                        break
+                if not matched_table:
+                    field_results.append(f"WHERE中表[{table}]未在知识库中定义")
+                    continue
+                    
+                # 处理columns字段
+                columns = []
+                for col in self.table_knowledge[matched_table]['columns']:
+                    if isinstance(col, dict) and 'name' in col:
+                        columns.append(norm_field_name(col['name']))
+                    elif isinstance(col, str):
+                        columns.append(norm_field_name(col))
+                        
+                if norm_field_name(field) in columns:
+                    field_results.append(f"WHERE中表[{matched_table}] 字段[{field}] (别名:{alias}) : 存在")
+                else:
+                    field_results.append(f"WHERE中表[{matched_table}] 字段[{field}] (别名:{alias}) : 不存在")
+        
+        # 3. 关系校验
+        relationship_results = []
+        if hasattr(self, 'relationships') and self.relationships:
+            # 解析关系数据
+            rel_list = []
+            if isinstance(self.relationships, dict) and 'relationships' in self.relationships:
+                for rel in self.relationships['relationships']:
+                    desc = rel.get('description', '')
+                    # 支持 =、<->、==、等于
+                    m = re.match(r'([\w]+)\.([\w\s]+)\s*(=|<->|==|等于)\s*([\w]+)\.([\w\s]+)', desc)
+                    if m:
+                        t1, f1, _, t2, f2 = m.group(1), m.group(2), m.group(3), m.group(4), m.group(5)
+                        rel_list.append({
+                            'table1': norm_table_name(t1),
+                            'field1': norm_field_name(f1),
+                            'table2': norm_table_name(t2),
+                            'field2': norm_field_name(f2)
+                        })
+                    else:
+                        # 兜底用字段
+                        rel_list.append({
+                            'table1': norm_table_name(rel.get('table1','')),
+                            'field1': norm_field_name(rel.get('field1','')),
+                            'table2': norm_table_name(rel.get('table2','')),
+                            'field2': norm_field_name(rel.get('field2',''))
+                        })
+            elif isinstance(self.relationships, list):
+                # 直接是关系列表
+                for rel in self.relationships:
+                    desc = rel.get('description', '')
+                    m = re.match(r'([\w]+)\.([\w\s]+)\s*(=|<->|==|等于)\s*([\w]+)\.([\w\s]+)', desc)
+                    if m:
+                        t1, f1, _, t2, f2 = m.group(1), m.group(2), m.group(3), m.group(4), m.group(5)
+                        rel_list.append({
+                            'table1': norm_table_name(t1),
+                            'field1': norm_field_name(f1),
+                            'table2': norm_table_name(t2),
+                            'field2': norm_field_name(f2)
+                        })
+                    else:
+                        rel_list.append({
+                            'table1': norm_table_name(rel.get('table1','')),
+                            'field1': norm_field_name(rel.get('field1','')),
+                            'table2': norm_table_name(rel.get('table2','')),
+                            'field2': norm_field_name(rel.get('field2',''))
+                        })
+            
+            # 执行关系校验
+            join_on_pattern = r'JOIN\s+([\w\[\]\.]+)\s+([a-zA-Z0-9_]+)\s+ON\s+([^\n]+)'
+            for join_table, join_alias, on_clause in re.findall(join_on_pattern, sql, re.IGNORECASE):
+                on_pairs = re.findall(r'([a-zA-Z0-9_]+)\.\[([^\]]+)\]\s*=\s*([a-zA-Z0-9_]+)\.\[([^\]]+)\]', on_clause)
+                for left_alias, left_field, right_alias, right_field in on_pairs:
+                    left_table = alias2table.get(left_alias)
+                    right_table = alias2table.get(right_alias)
+                    if not left_table or not right_table:
+                        relationship_results.append(f"关系校验: 别名[{left_alias}]或[{right_alias}]未找到对应表")
+                        continue
+                        
+                    found = False
+                    for rel in rel_list:
+                        if (
+                            (rel['table1'] == left_table and rel['table2'] == right_table and 
+                             rel['field1'] == norm_field_name(left_field) and rel['field2'] == norm_field_name(right_field)) or
+                            (rel['table2'] == left_table and rel['table1'] == right_table and 
+                             rel['field2'] == norm_field_name(left_field) and rel['field1'] == norm_field_name(right_field))
+                        ):
+                            relationship_results.append(f"关系校验: {left_table}--{right_table} 字段[{left_field}]--[{right_field}] 匹配")
+                            found = True
+                            break
+                    if not found:
+                        relationship_results.append(f"关系校验: {left_table}--{right_table} 字段[{left_field}]--[{right_field}] 未在关系库中定义")
+        
+        # 4. 组合结果
+        result_parts = []
+        if field_results:
+            result_parts.append("字段校验结果:\n" + "\n".join(field_results))
+        if relationship_results:
+            result_parts.append("关系校验结果:\n" + "\n".join(relationship_results))
+        
+        if not result_parts:
+            return "本地校验：所有字段和关系均存在，校验通过。"
+        
+        return "本地校验：\n" + "\n\n".join(result_parts)
 
     def local_field_check(self, sql):
         import re
@@ -393,30 +572,82 @@ class Text2SQLQueryEngine:
         """验证SQL中的字段是否存在于表结构中"""
         import re
         
-        # 提取所有字段名（方括号内的内容）
-        field_pattern = r'\[([^\]]+)\]'
-        fields_in_sql = re.findall(field_pattern, sql)
+        def norm_table_name(name):
+            if '.' in name:
+                name = name.split('.')[-1]
+            return name.replace('[','').replace(']','').strip().lower()
         
-        # 过滤掉数据库名、表名等非字段名
-        filtered_fields = []
-        for field in fields_in_sql:
-            # 跳过数据库名、schema名、表名等
-            if any(skip in field.lower() for skip in ['ff_idss', 'dbo', 'dtsupply', 'condt', 'commit']):
-                continue
-            # 跳过明显的表名模式
-            if '.' in field or field.lower() in ['summary', 'commit']:
-                continue
-            filtered_fields.append(field)
+        def norm_field_name(name):
+            return name.replace('[','').replace(']','').strip().lower()
         
-        # 检查每个字段是否存在于表结构中
+        # 1. 解析表别名映射
+        alias2table = {}
+        from_pattern = r'FROM\s+([\w\[\]\.]+)\s+([a-zA-Z0-9_]+)'
+        join_pattern = r'JOIN\s+([\w\[\]\.]+)\s+([a-zA-Z0-9_]+)'
+        for pat in [from_pattern, join_pattern]:
+            for m in re.findall(pat, sql, re.IGNORECASE):
+                table, alias = m
+                alias2table[alias] = norm_table_name(table)
+        
+        # 2. 提取所有带表别名的字段引用
+        field_pattern = r'([a-zA-Z0-9_]+)\.\[([^\]]+)\]'
+        field_refs = re.findall(field_pattern, sql)
+        
         missing_fields = []
         valid_fields = []
         
-        for field in filtered_fields:
+        for alias, field in field_refs:
+            table = alias2table.get(alias)
+            if not table:
+                missing_fields.append(f"别名[{alias}]未找到对应表")
+                continue
+                
+            # 查找对应的表
+            matched_table = None
+            for tk in self.table_knowledge:
+                if norm_table_name(tk) == table:
+                    matched_table = tk
+                    break
+            if not matched_table:
+                missing_fields.append(f"表[{table}]未在知识库中定义")
+                continue
+                
+            # 检查字段是否存在
+            columns = []
+            for col in self.table_knowledge[matched_table]['columns']:
+                if isinstance(col, dict) and 'name' in col:
+                    columns.append(norm_field_name(col['name']))
+                elif isinstance(col, str):
+                    columns.append(norm_field_name(col))
+                    
+            if norm_field_name(field) in columns:
+                valid_fields.append(f"{alias}.{field}")
+            else:
+                missing_fields.append(f"表[{matched_table}] 字段[{field}] (别名:{alias})")
+        
+        # 3. 检查没有表别名的字段引用（可能是表名直接引用）
+        # 这种情况比较少见，但为了完整性还是检查一下
+        simple_field_pattern = r'\[([^\]]+)\]'
+        simple_fields = re.findall(simple_field_pattern, sql)
+        
+        for field in simple_fields:
+            # 跳过明显的表名、数据库名等
+            if any(skip in field.lower() for skip in ['ff_idss', 'dbo', 'dtsupply', 'condt', 'commit', 'summary']):
+                continue
+            if '.' in field:
+                continue
+                
+            # 检查是否在任何表中存在
             field_exists = False
             for table_name, table_info in self.table_knowledge.items():
-                columns = table_info.get('columns', [])
-                if field in columns:
+                columns = []
+                for col in table_info.get('columns', []):
+                    if isinstance(col, dict) and 'name' in col:
+                        columns.append(norm_field_name(col['name']))
+                    elif isinstance(col, str):
+                        columns.append(norm_field_name(col))
+                
+                if norm_field_name(field) in columns:
                     field_exists = True
                     valid_fields.append(field)
                     break
