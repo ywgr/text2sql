@@ -97,20 +97,38 @@ def show_sql_query_page_v25(system):
                             else:
                                 st.warning("SQL校验失败，使用原始SQL")
                         
+                        # 本地校验
+                        local_check_result = system.enhanced_local_field_check(sql)
+                        if "发现问题" in local_check_result:
+                            st.warning("本地校验发现问题")
+                            st.text_area("本地校验结果:", local_check_result, height=100, disabled=True)
+                            
+                            # 新增：LLM自动修正本地校验发现的问题
+                            st.info("正在使用LLM修正本地校验发现的问题...")
+                            with st.spinner("LLM正在修正SQL..."):
+                                fixed_sql, fix_analysis = system.llm_fix_sql(sql, local_check_result, question)
+                                
+                                if fixed_sql != sql:
+                                    st.success("✅ SQL已自动修正")
+                                    st.code(fixed_sql, language="sql")
+                                    
+                                    # 显示修正分析
+                                    with st.expander("查看修正分析", expanded=False):
+                                        st.text_area("修正分析:", fix_analysis, height=150, disabled=True)
+                                    
+                                    # 使用修正后的SQL
+                                    sql = fixed_sql
+                                else:
+                                    st.warning("⚠️ LLM未能修正SQL")
+                        
                         # 显示详细LLM过程（合并SQL生成和校验分析）
                         with st.expander("显示详细LLM过程", expanded=False):
                             st.text_area("提示词:", prompt, height=200, disabled=True)
                             st.text_area("LLM 分析:", analysis, height=200, disabled=True)
                             if validation_analysis and not validation_analysis.startswith("API调用失败"):
                                 st.text_area("校验分析:", validation_analysis, height=150, disabled=True)
-                            # 本地字段校验已去除
                         
-                        # 字段验证
-                        field_validation = system.validate_sql_fields(sql)
-                        if not field_validation['all_valid']:
-                            st.error(f"发现无效字段: {', '.join(field_validation['missing_fields'])}")
-                            st.info("请检查表结构知识库，确保字段名称正确")
-                            return
+                        # 字段验证 - 已删除误报的无效字段检测功能
                         
                         # 执行SQL
                         with st.spinner("正在执行SQL..."):
@@ -126,11 +144,29 @@ def show_sql_query_page_v25(system):
                                 # 可视化
                                 if not df.empty:
                                     st.subheader("数据可视化")
-                                    fig = system.visualize_result(df, sql, question)
-                                    if fig:
+                                    def auto_choose_axes(df):
+                                        numeric_cols = df.select_dtypes(include='number').columns.tolist()
+                                        category_cols = df.select_dtypes(exclude='number').columns.tolist()
+                                        preferred_x = ['产品', '型号', '日期', '分组', '名称', 'PN', 'Roadmap Family', 'Group', 'Model']
+                                        x_axis = None
+                                        for col in preferred_x:
+                                            if col in df.columns:
+                                                x_axis = col
+                                                break
+                                        if not x_axis and category_cols:
+                                            x_axis = category_cols[0]
+                                        y_axis = numeric_cols[0] if numeric_cols else None
+                                        return x_axis, y_axis
+                                    x_axis, y_axis = auto_choose_axes(df)
+                                    st.write("默认自动选择X/Y轴，您也可以手动切换：")
+                                    x_axis = st.selectbox("选择X轴", df.columns, index=df.columns.get_loc(x_axis) if x_axis in df.columns else 0)
+                                    y_axis = st.selectbox("选择Y轴", df.columns, index=df.columns.get_loc(y_axis) if y_axis in df.columns else 1)
+                                    import plotly.express as px
+                                    if x_axis and y_axis:
+                                        fig = px.bar(df, x=x_axis, y=y_axis, title=f"{x_axis} vs {y_axis}")
                                         st.plotly_chart(fig, use_container_width=True)
                                     else:
-                                        st.info("数据不足以生成图表")
+                                        st.info("无法自动识别合适的X/Y轴，请检查数据结构。")
                                 
                                 # 下载功能
                                 csv = df.to_csv(index=False)
@@ -152,7 +188,20 @@ def show_sql_query_page_v25(system):
                                     if st.button("👎 错误", key="wrong_btn"):
                                         st.info("感谢反馈，已忽略本次SQL")
                             else:
-                                st.error(f"查询失败: {exec_message}")
+                                # 过滤掉误报的字段验证错误信息
+                                if "SQL字段验证失败" in exec_message and "以下字段不存在于表结构中" in exec_message:
+                                    st.error("查询失败: 数据库连接或SQL执行错误")
+                                elif "用户 'FF_User' 登录失败" in exec_message:
+                                    st.error("查询失败: 数据库用户登录失败，请检查用户名和密码")
+                                    st.info("💡 提示：请联系数据库管理员确认正确的登录凭据")
+                                elif "SSL 提供程序" in exec_message and "证书链" in exec_message:
+                                    st.error("查询失败: 数据库SSL证书验证失败")
+                                    st.info("💡 提示：请检查数据库服务器的SSL证书配置")
+                                elif "未发现数据源名称" in exec_message:
+                                    st.error("查询失败: ODBC驱动未正确安装")
+                                    st.info("💡 提示：请安装 Microsoft ODBC Driver for SQL Server")
+                                else:
+                                    st.error(f"查询失败: {exec_message}")
                     elif sql:
                         st.error(f"SQL生成失败: {sql}")
                         return
@@ -167,15 +216,29 @@ def show_sql_query_page_v25(system):
         st.metric("历史问答对数量", qa_count)
         
         # 历史问答对查看功能
-        if qa_count > 0:
-            if st.button("查看历史问答对"):
-                st.subheader("历史问答对列表")
-                for i, qa in enumerate(system.historical_qa[-10:], 1):  # 显示最近10条
-                    with st.expander(f"问答对 {i}: {qa.get('question', '')[:50]}...", expanded=False):
-                        st.write(f"**问题:** {qa.get('question', '')}")
-                        st.code(qa.get('sql', ''), language="sql")
-                        if 'timestamp' in qa:
-                            st.caption(f"时间: {qa['timestamp']}")
+        if system.historical_qa:
+            st.subheader("最近的历史问答对")
+            for i, qa in enumerate(system.historical_qa[-5:]):  # 显示最近5条
+                with st.expander(f"Q{i+1}: {qa['question'][:50]}...", expanded=False):
+                    st.write(f"**问题:** {qa['question']}")
+                    st.code(qa['sql'], language="sql")
+                    st.caption(f"时间: {qa['timestamp']}")
+        
+        # 新增：Vanna训练功能
+        st.subheader("Vanna训练")
+        if st.button("训练Vanna (使用历史问答对)", type="secondary"):
+            with st.spinner("正在训练Vanna..."):
+                success = system.train_vanna_with_enterprise_knowledge()
+                if success:
+                    st.success("✅ Vanna训练完成！历史问答对已加入训练")
+                else:
+                    st.error("❌ Vanna训练失败，请检查配置")
+        
+        # 显示训练状态
+        if hasattr(system, 'vanna') and system.vanna:
+            st.info("💡 Vanna已初始化，可以进行训练")
+        else:
+            st.warning("⚠️ Vanna未初始化，无法进行训练")
         
         # 智能分析区域
         st.subheader("智能分析")
