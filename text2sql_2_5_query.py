@@ -83,6 +83,23 @@ class DatabaseManager:
 class VannaWrapper:
     def __init__(self, api_key=None):
         self.api_key = "sk-0e6005b793aa4759bb022b91e9055f86"
+        self.training_data = []  # 存储训练数据
+    
+    def train(self, ddl=None, documentation=None, question=None, sql=None):
+        """训练Vanna模型"""
+        training_item = {}
+        if ddl:
+            training_item['ddl'] = ddl
+        if documentation:
+            training_item['documentation'] = documentation
+        if question and sql:
+            training_item['question'] = question
+            training_item['sql'] = sql
+        
+        if training_item:
+            self.training_data.append(training_item)
+            print(f"训练数据已添加: {training_item}")
+    
     def generate_sql(self, prompt):
         headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -119,8 +136,55 @@ class Text2SQLQueryEngine:
         # 兼容V2.4 UI
         self.databases = {}
         self.sql_cache = type('SqlCache', (), {'cache': {}, 'access_count': {}})()
+    def check_table_has_time_fields(self, table_name):
+        """检查表是否包含时间字段（年、月、日等）"""
+        if table_name not in self.table_knowledge:
+            return False
+        
+        time_field_patterns = [
+            '年', '月', '日', '周', '财年', '财月', '财周', '自然年', '自然月',
+            'year', 'month', 'day', 'week', 'fiscal_year', 'fiscal_month', 'fiscal_week'
+        ]
+        
+        columns = self.table_knowledge[table_name].get('columns', [])
+        for col in columns:
+            if isinstance(col, dict):
+                field_name = col.get('name', '').lower()
+            elif isinstance(col, str):
+                field_name = col.lower()
+            else:
+                continue
+                
+            # 检查字段名是否包含时间模式
+            for pattern in time_field_patterns:
+                if pattern in field_name:
+                    return True
+        
+        return False
+    
+    def get_tables_without_time_fields(self):
+        """获取不包含时间字段的表列表"""
+        tables_without_time = []
+        for table_name in self.table_knowledge:
+            if not self.check_table_has_time_fields(table_name):
+                tables_without_time.append(table_name)
+        return tables_without_time
+    
     def generate_prompt(self, question, target_table=None):
         processed_question = self.apply_business_rules(question, target_table)
+        
+        # 检查表的时间字段情况
+        tables_without_time = self.get_tables_without_time_fields()
+        time_field_warning = ""
+        if tables_without_time:
+            time_field_warning = f"""
+【重要提醒：无时间字段的表】
+以下表不包含时间字段（年、月、日等），生成SQL时不应添加时间条件：
+{', '.join(tables_without_time)}
+
+注意：如果查询涉及这些表，请勿添加时间相关的WHERE条件。
+"""
+        
         table_lines = [f"- {tbl}: {', '.join(info.get('columns', []))}" for tbl, info in self.table_knowledge.items()]
         table_struct = '\n'.join(table_lines)
         rel_lines = []
@@ -162,6 +226,9 @@ class Text2SQLQueryEngine:
 2. 所有JOIN只能使用下方"表关系定义"中明确列出的关系，禁止自创或猜测JOIN。
 3. 生成SQL后，必须逐条校验所有表和JOIN，发现不合规必须剔除或修正，并在分析中详细说明。
 4. 如有任何不合规，输出"严重错误：出现未授权表/字段/关系"，并给出修正建议。
+5. 特别注意：如果查询的表不包含时间字段，则不应添加时间相关的WHERE条件。
+
+{time_field_warning}
 
 【表结构知识库】
 {table_struct}
@@ -182,6 +249,7 @@ class Text2SQLQueryEngine:
 【输出要求】
 1. 先输出最终合规SQL（只输出SQL，不要多余解释）；
 2. 再输出结构化分析过程，逐条列出每个表和JOIN的合规性。
+3. 特别注意检查是否在不包含时间字段的表中添加了时间条件。
 """
         return prompt
     def apply_business_rules(self, question, target_table=None):
@@ -232,40 +300,107 @@ class Text2SQLQueryEngine:
         return related
 
     def llm_validate_sql(self, sql, prompt):
-        related_table_info = self.get_related_table_info(sql)
-        validate_prompt = f"""
-你是SQL合规性校验专家。请严格校验下方SQL是否合规，只做校验，不做修正。
+        """使用LLM校验SQL，只进行校验不修改"""
+        try:
+            # 检查SQL中涉及的表是否包含时间字段
+            tables_in_sql = self.extract_tables_from_sql(sql)
+            time_field_validation = self.validate_time_conditions(sql, tables_in_sql)
+            
+            # 构建校验提示词
+            validation_prompt = f"""
+你是一个SQL专家。请对以下SQL进行校验分析，但不要修改SQL。
 
-【相关表结构】
-{json.dumps(related_table_info, ensure_ascii=False, indent=2)}
-
-【待校验SQL】
+【原始SQL】
 {sql}
 
-【校验要求】
-1. 只能根据上方表结构判断字段是否存在，不能凭经验猜测。
-2. 字段名区分大小写。
-3. 只做校验，不做修正。
-4. 只输出"校验分析"。
-"""
-        # 增加重试机制
-        max_retries = 3
-        for attempt in range(max_retries):
-            try:
-                response = self.vanna.generate_sql(validate_prompt) if self.vanna else self.call_deepseek_api(validate_prompt)
-                # 执行本地校验作为补充
-                local_check_result = self.enhanced_local_field_check(sql)
-                # 合并LLM校验和本地校验结果
-                combined_response = f"{response}\n\n{local_check_result}"
-                return sql, combined_response
-            except Exception as e:
-                if attempt == max_retries - 1:
-                    # 即使LLM失败，也执行本地校验
-                    local_check_result = self.enhanced_local_field_check(sql)
-                    return sql, f"LLM校验API调用失败: {e}\n\n{local_check_result}"
-                import time
-                time.sleep(2 * (attempt + 1))
+【表结构知识库】
+{json.dumps(self.table_knowledge, ensure_ascii=False, indent=2)}
 
+【表关系定义】
+{json.dumps(self.relationships, ensure_ascii=False, indent=2)}
+
+【时间字段检查结果】
+{time_field_validation}
+
+【校验要求】
+1. 检查SQL语法是否正确
+2. 检查所有表名和字段名是否存在于知识库中
+3. 检查JOIN条件是否使用了正确的表关系
+4. 检查时间条件是否与表结构匹配
+5. 如果表不包含时间字段，则不应有该表的时间条件
+6. 只进行校验分析，不要修改SQL
+
+【输出格式】
+请输出详细的校验分析，包括：
+- 语法检查结果
+- 字段存在性检查
+- 表关系检查
+- 时间条件合理性检查
+- 总体评价
+"""
+            
+            # 调用LLM进行校验
+            response = self.call_deepseek_api(validation_prompt)
+            
+            if response and not response.startswith("API调用失败"):
+                return sql, response
+            else:
+                return sql, f"SQL校验失败：{response}"
+                
+        except Exception as e:
+            return sql, f"SQL校验过程中出现错误：{str(e)}"
+    
+    def extract_tables_from_sql(self, sql):
+        """从SQL中提取表名"""
+        import re
+        tables = []
+        
+        # 提取FROM和JOIN中的表名
+        from_pattern = r'FROM\s+([\w\[\]\.]+)'
+        join_pattern = r'JOIN\s+([\w\[\]\.]+)'
+        
+        for pattern in [from_pattern, join_pattern]:
+            for match in re.findall(pattern, sql, re.IGNORECASE):
+                # 提取表名（去掉数据库名和schema）
+                table_name = match.split('.')[-1].replace('[', '').replace(']', '')
+                tables.append(table_name)
+        
+        return list(set(tables))  # 去重
+    
+    def validate_time_conditions(self, sql, tables_in_sql):
+        """验证SQL中的时间条件是否与表结构匹配"""
+        import re
+        
+        # 检查SQL中的时间条件
+        time_conditions = []
+        time_patterns = [
+            r'\[自然年\]', r'\[财年\]', r'\[财月\]', r'\[财周\]', r'\[年\]', r'\[月\]', r'\[日\]',
+            r'YEAR\s*\(', r'MONTH\s*\(', r'GETDATE\s*\(', r'CAST\s*\(.*?AS.*?VARCHAR\s*\)'
+        ]
+        
+        for pattern in time_patterns:
+            if re.search(pattern, sql, re.IGNORECASE):
+                time_conditions.append(pattern)
+        
+        if not time_conditions:
+            return "SQL中未发现时间条件，无需检查。"
+        
+        # 检查每个表是否包含时间字段
+        validation_results = []
+        for table in tables_in_sql:
+            has_time_fields = self.check_table_has_time_fields(table)
+            if not has_time_fields and time_conditions:
+                validation_results.append(f"⚠️ 警告：表[{table}]不包含时间字段，但SQL中包含时间条件")
+            elif has_time_fields:
+                validation_results.append(f"✅ 表[{table}]包含时间字段，时间条件合理")
+            else:
+                validation_results.append(f"✅ 表[{table}]不包含时间字段，且SQL中无时间条件")
+        
+        if validation_results:
+            return "\n".join(validation_results)
+        else:
+            return "时间条件检查通过。"
+    
     def enhanced_local_field_check(self, sql):
         """增强版本地字段校验，支持表别名和关系校验"""
         import re
@@ -355,6 +490,51 @@ class Text2SQLQueryEngine:
                 else:
                     field_results.append(f"WHERE中表[{matched_table}] 字段[{field}] (别名:{alias}) : 不存在")
         
+        # 检查没有表别名的字段引用 - 改进逻辑
+        # 对于没有表别名的字段，我们需要更谨慎地判断
+        simple_field_pattern = r'\[([^\]]+)\]'
+        simple_fields = re.findall(simple_field_pattern, sql)
+        
+        # 过滤掉已经在带别名字段中处理过的字段
+        aliased_fields = set()
+        for alias, field in re.findall(select_pattern, sql):
+            aliased_fields.add(field)
+        for alias, field in re.findall(r'([a-zA-Z0-9_]+)\.\[([^\]]+)\]', where_clause if where_match else ''):
+            aliased_fields.add(field)
+        
+        simple_fields = [field for field in simple_fields if field not in aliased_fields]
+        
+        for field in simple_fields:
+            # 跳过明显的表名、数据库名等
+            if any(skip in field.lower() for skip in ['ff_idss', 'dbo', 'dtsupply', 'condt', 'commit', 'summary']):
+                continue
+            if '.' in field:
+                continue
+                
+            # 检查是否在任何表中存在
+            field_exists = False
+            for table_name, table_info in self.table_knowledge.items():
+                columns = []
+                for col in table_info.get('columns', []):
+                    if isinstance(col, dict) and 'name' in col:
+                        columns.append(norm_field_name(col['name']))
+                    elif isinstance(col, str):
+                        columns.append(norm_field_name(col))
+                
+                if norm_field_name(field) in columns:
+                    field_exists = True
+                    field_results.append(f"表[{table_name}] 字段[{field}] (无别名) : 存在")
+                    break
+            
+            # 如果字段在任何表中都不存在，但可能是业务术语，也不报错
+            business_terms = ["未清PO数量", "本月备货", "全链库存", "自然年", "财月", "财周", "财年", "Model"]
+            if field in business_terms:
+                field_results.append(f"业务术语[{field}] : 跳过验证")
+                continue
+            
+            if not field_exists:
+                field_results.append(f"字段[{field}] (无别名) : 未在任何表中找到")
+        
         # 3. 关系校验
         relationship_results = []
         if hasattr(self, 'relationships') and self.relationships:
@@ -437,7 +617,16 @@ class Text2SQLQueryEngine:
         if not result_parts:
             return "本地校验：所有字段和关系均存在，校验通过。"
         
-        return "本地校验：\n" + "\n\n".join(result_parts)
+        # 返回详细的错误信息，便于LLM修正
+        detailed_errors = []
+        for result in result_parts:
+            if "不存在" in result or "未找到" in result or "未在关系库中定义" in result:
+                detailed_errors.append(result)
+        
+        if detailed_errors:
+            return "本地校验发现问题：\n" + "\n\n".join(detailed_errors)
+        else:
+            return "本地校验：\n" + "\n\n".join(result_parts)
 
     def local_field_check(self, sql):
         import re
@@ -625,10 +814,14 @@ class Text2SQLQueryEngine:
             else:
                 missing_fields.append(f"表[{matched_table}] 字段[{field}] (别名:{alias})")
         
-        # 3. 检查没有表别名的字段引用（可能是表名直接引用）
-        # 这种情况比较少见，但为了完整性还是检查一下
+        # 3. 检查没有表别名的字段引用 - 改进逻辑
+        # 对于没有表别名的字段，我们需要更智能地判断它们属于哪个表
         simple_field_pattern = r'\[([^\]]+)\]'
         simple_fields = re.findall(simple_field_pattern, sql)
+        
+        # 过滤掉已经在带别名字段中处理过的字段
+        aliased_fields = {field for _, field in field_refs}
+        simple_fields = [field for field in simple_fields if field not in aliased_fields]
         
         for field in simple_fields:
             # 跳过明显的表名、数据库名等
@@ -637,7 +830,57 @@ class Text2SQLQueryEngine:
             if '.' in field:
                 continue
                 
-            # 检查是否在任何表中存在
+            # 改进：根据SQL上下文判断字段可能属于哪个表
+            # 1. 检查是否在SELECT子句中（可能是聚合函数或计算字段）
+            select_match = re.search(r'SELECT\s+(.*?)\s+FROM', sql, re.IGNORECASE | re.DOTALL)
+            if select_match:
+                select_clause = select_match.group(1)
+                if f'[{field}]' in select_clause:
+                    # 如果字段在SELECT子句中且没有表别名，可能是计算字段或聚合函数
+                    # 这种情况下我们不应该报错
+                    valid_fields.append(field)
+                    continue
+            
+            # 2. 检查是否在WHERE子句中
+            where_match = re.search(r'WHERE\s+(.*?)(?=\s*ORDER\s+BY|\s*GROUP\s+BY|\s*HAVING|\s*$)', sql, re.IGNORECASE | re.DOTALL)
+            if where_match:
+                where_clause = where_match.group(1)
+                if f'[{field}]' in where_clause:
+                    # 如果字段在WHERE子句中且没有表别名，需要检查它是否存在于主表中
+                    # 提取主表名
+                    from_match = re.search(r'FROM\s+([\w\[\]\.]+)', sql, re.IGNORECASE)
+                    if from_match:
+                        main_table = norm_table_name(from_match.group(1))
+                        # 检查字段是否在主表中存在
+                        field_exists = False
+                        for table_name, table_info in self.table_knowledge.items():
+                            if norm_table_name(table_name) == main_table:
+                                columns = []
+                                for col in table_info.get('columns', []):
+                                    if isinstance(col, dict) and 'name' in col:
+                                        columns.append(norm_field_name(col['name']))
+                                    elif isinstance(col, str):
+                                        columns.append(norm_field_name(col))
+                                
+                                if norm_field_name(field) in columns:
+                                    field_exists = True
+                                    valid_fields.append(field)
+                                    break
+                        
+                        if not field_exists:
+                            missing_fields.append(f"主表[{main_table}] 字段[{field}]")
+                            continue
+                    else:
+                        # 如果找不到主表，按业务术语处理
+                        business_terms = ["未清PO数量", "本月备货", "全链库存", "自然年", "财月", "财周", "财年"]
+                        if field in business_terms:
+                            valid_fields.append(field)
+                            continue
+                        else:
+                            missing_fields.append(field)
+                            continue
+            
+            # 3. 检查是否在任何表中存在（作为兜底检查）
             field_exists = False
             for table_name, table_info in self.table_knowledge.items():
                 columns = []
@@ -651,6 +894,13 @@ class Text2SQLQueryEngine:
                     field_exists = True
                     valid_fields.append(field)
                     break
+            
+            # 4. 如果字段在任何表中都不存在，但可能是业务术语，也不报错
+            # 比如"未清PO数量"这样的业务术语
+            business_terms = ["未清PO数量", "本月备货", "全链库存", "自然年", "财月", "财周", "财年"]
+            if field in business_terms:
+                valid_fields.append(field)
+                continue
             
             if not field_exists:
                 missing_fields.append(field)
@@ -868,6 +1118,151 @@ SQL: {sql}
                 json.dump(self.historical_qa, f, ensure_ascii=False, indent=2)
         except Exception as e:
             print(f"保存历史问答对失败: {e}")
+    
+    def train_vanna_with_enterprise_knowledge(self, qa_examples: list = None):
+        """用企业级表结构、关系、业务规则和问题-SQL对训练Vanna"""
+        if not self.vanna:
+            print("Vanna尚未初始化，无法进行训练")
+            return False
+        
+        try:
+            print("开始用企业级知识库训练Vanna...")
+            
+            # 1. 训练表结构DDL
+            for table_name, table_info in self.table_knowledge.items():
+                columns = table_info.get('columns', [])
+                col_defs = []
+                for col in columns:
+                    if isinstance(col, dict) and 'name' in col:
+                        col_name = col['name']
+                        col_type = col.get('type', 'VARCHAR(255)')
+                    elif isinstance(col, str):
+                        col_name = col
+                        col_type = 'VARCHAR(255)'
+                    else:
+                        continue
+                    col_defs.append(f"[{col_name}] {col_type}")
+                
+                if col_defs:
+                    ddl = f"CREATE TABLE [{table_name}] (\n  " + ",\n  ".join(col_defs) + "\n);"
+                    self.vanna.train(ddl=ddl)
+                    print(f"训练表结构: {table_name}")
+            
+            # 2. 强化训练表关系
+            if self.relationships and 'relationships' in self.relationships:
+                rel_texts = []
+                for rel in self.relationships['relationships']:
+                    desc = rel.get('description', '')
+                    if desc:
+                        rel_text = f"表关系: {desc}"
+                        self.vanna.train(documentation=rel_text)
+                        rel_texts.append(rel_text)
+                        print(f"训练表关系: {desc}")
+                
+                # 多次强调最高规则
+                if rel_texts:
+                    rels_joined = '\n'.join(rel_texts)
+                    for _ in range(3):
+                        self.vanna.train(documentation=f"最高规则：你只能使用如下表关系JOIN，禁止其它：\n{rels_joined}")
+            
+            # 3. 训练业务规则
+            if self.business_rules:
+                rules_text = f"业务规则: {json.dumps(self.business_rules, ensure_ascii=False)}"
+                self.vanna.train(documentation=rules_text)
+                print("训练业务规则")
+            
+            # 4. 训练历史问答对
+            if qa_examples:
+                for qa in qa_examples:
+                    q = qa.get('question')
+                    sql = qa.get('sql')
+                    if q and sql:
+                        self.vanna.train(question=q, sql=sql)
+                        print(f"训练问答对: {q[:50]}...")
+            
+            # 5. 训练现有的历史问答对
+            if self.historical_qa:
+                for qa in self.historical_qa:
+                    q = qa.get('question')
+                    sql = qa.get('sql')
+                    if q and sql:
+                        self.vanna.train(question=q, sql=sql)
+                        print(f"训练历史问答对: {q[:50]}...")
+            
+            print("Vanna企业级知识库训练完成")
+            return True
+            
+        except Exception as e:
+            print(f"Vanna训练失败: {e}")
+            return False
+    
+    def llm_fix_sql(self, sql, validation_errors, original_question):
+        """使用LLM修正SQL中的错误"""
+        try:
+            # 构建修正提示词
+            fix_prompt = f"""
+你是一个SQL专家。请根据以下信息修正SQL语句中的错误：
+
+【原始问题】
+{original_question}
+
+【有问题的SQL】
+{sql}
+
+【校验发现的错误】
+{validation_errors}
+
+【表结构知识库】
+{json.dumps(self.table_knowledge, ensure_ascii=False, indent=2)}
+
+【表关系定义】
+{json.dumps(self.relationships, ensure_ascii=False, indent=2)}
+
+【业务规则】
+{json.dumps(self.business_rules, ensure_ascii=False, indent=2)}
+
+【修正要求】
+1. 根据校验错误信息，修正SQL中的问题
+2. 确保所有字段名存在于对应表中
+3. 确保所有表名正确
+4. 确保JOIN条件使用正确的表关系
+5. 保持原始查询意图不变
+6. 只输出修正后的SQL，不要其他解释
+
+【输出格式】
+直接输出修正后的SQL语句，不要包含任何其他内容。
+"""
+            
+            # 调用LLM进行修正
+            response = self.call_deepseek_api(fix_prompt)
+            
+            # 提取修正后的SQL
+            if response and not response.startswith("API调用失败"):
+                # 尝试从响应中提取SQL
+                import re
+                sql_match = re.search(r'```sql\s*\n(.*?)\n```', response, re.DOTALL | re.IGNORECASE)
+                if sql_match:
+                    fixed_sql = sql_match.group(1).strip()
+                else:
+                    # 如果没有代码块，尝试直接提取
+                    lines = response.strip().split('\n')
+                    fixed_sql = lines[0].strip()
+                    if fixed_sql.startswith('SELECT'):
+                        pass  # 看起来是SQL
+                    else:
+                        # 查找以SELECT开头的行
+                        for line in lines:
+                            if line.strip().upper().startswith('SELECT'):
+                                fixed_sql = line.strip()
+                                break
+                
+                return fixed_sql, f"LLM修正结果：\n{response}"
+            else:
+                return sql, f"LLM修正失败：{response}"
+                
+        except Exception as e:
+            return sql, f"LLM修正过程中出现错误：{str(e)}"
+    
     def call_deepseek_api(self, prompt):
         """调用DeepSeek API，带重试机制"""
         import time

@@ -57,8 +57,8 @@ def show_sql_query_page_v25(system):
             "config": {
                 "server": "10.97.34.39",
                 "database": selected_database,
-                "username": "FF_User",
-                "password": "Grape!0808",
+                "username": "AI_User",
+                "password": "D!O$LYHSVNSL",
                 "driver": "ODBC Driver 18 for SQL Server",
                 "encrypt": "no",
                 "trust_server_certificate": "yes"
