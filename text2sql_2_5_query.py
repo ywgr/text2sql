@@ -563,8 +563,11 @@ class Text2SQLQueryEngine:
         # 收集WHERE条件
         where_conditions = []
         
-        # 应用业务规则
-        for business_term, rule_info in self.business_rules.items():
+        # 应用业务规则 - 优化版本，优先处理时间规则
+        # 首先按规则长度排序，确保更具体的规则（如"25年7月"）优先于通用规则（如"25年"）
+        sorted_rules = sorted(self.business_rules.items(), key=lambda x: len(x[0]), reverse=True)
+        
+        for business_term, rule_info in sorted_rules:
             # 处理新的业务规则格式（字典）
             if isinstance(rule_info, dict):
                 business_term_actual = rule_info.get('business_term', business_term)
@@ -631,10 +634,19 @@ class Text2SQLQueryEngine:
                 # 检查表限制
                 meta_info = business_rules_meta.get(business_term, {})
                 table_restriction = meta_info.get('table_restriction')
+                rule_type = meta_info.get('type', '实体')
                 
                 # 如果没有表限制，或者目标表匹配，则应用规则
                 if table_restriction is None or target_table == table_restriction:
-                    processed_question = processed_question.replace(business_term, rule_info)
+                    if business_term in processed_question:
+                        # 对于时间类型的规则，添加到WHERE条件中
+                        if rule_type == '时间':
+                            where_conditions.append(rule_info)
+                            # 从问题中移除业务术语，避免重复
+                            processed_question = processed_question.replace(business_term, '')
+                        else:
+                            # 其他类型的规则，直接替换
+                            processed_question = processed_question.replace(business_term, rule_info)
         
         # 清理多余的空格和重复内容
         processed_question = re.sub(r'\s+', ' ', processed_question).strip()
@@ -682,7 +694,7 @@ class Text2SQLQueryEngine:
                         filtered_where_conditions.append(condition)
                     elif not target_table:
                         # 如果没有指定目标表，添加条件但标记为需要验证
-                        filtered_where_conditions.append(f"/* 需要验证表是否包含时间字段: {condition} */")
+                        filtered_where_conditions.append(condition)
                 else:
                     # 非时间条件，直接添加
                     filtered_where_conditions.append(condition)
@@ -694,7 +706,10 @@ class Text2SQLQueryEngine:
             where_clause = ' AND '.join(where_conditions)
             # 清理WHERE条件中的重复内容
             where_clause = re.sub(r'where\s+', '', where_clause, flags=re.IGNORECASE)
-            processed_question += f" WHERE条件: {where_clause}"
+            # 确保WHERE条件格式正确
+            where_clause = where_clause.strip()
+            if where_clause:
+                processed_question += f" WHERE条件: {where_clause}"
         
         return processed_question
     def generate_sql(self, prompt):
