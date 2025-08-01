@@ -35,6 +35,156 @@
     "create_time": "2025-07-21 10:53:37",
     "usage_count": 0
   },
+  "25年": {
+    "type": "时间",
+    "description": "包含25年，例如：25年 --》 where 自然年=2025",
+    "create_time": "2025-01-27 10:00:00",
+    "usage_count": 0
+  },
+  "25年7月": {
+    "type": "时间",
+    "description": "包含25年7月，例如：25年7月 --》 where 自然年=2025 AND 财月='7月'",
+    "create_time": "2025-01-27 10:00:00",
+    "usage_count": 0
+  },
+  "25年8月": {
+    "type": "时间",
+    "description": "包含25年8月，例如：25年8月 --》 where 自然年=2025 AND 财月='8月'",
+    "create_time": "2025-01-27 10:00:00",
+    "usage_count": 0
+  },
+  "25年9月": {
+    "type": "时间",
+    "description": "包含25年9月，例如：25年9月 --》 where 自然年=2025 AND 财月='9月'",
+    "create_time": "2025-01-27 10:00:00",
+    "usage_count": 0
+  },
+  "25年10月": {
+    "type": "时间",
+    "description": "包含25年10月，例如：25年10月 --》 where 自然年=2025 AND 财月='10月'",
+    "create_time": "2025-01-27 10:00:00",
+    "usage_count": 0
+  },
+  "25年11月": {
+    "type": "时间",
+    "description": "包含25年11月，例如：25年11月 --》 where 自然年=2025 AND 财月='11月'",
+    "create_time": "2025-01-27 10:00:00",
+    "usage_count": 0
+  },
+  "25年12月": {
+    "type": "时间",
+    "description": "包含25年12月，例如：25年12月 --》 where 自然年=2025 AND 财月='12月'",
+    "create_time": "2025-01-27 10:00:00",
+    "usage_count": 0
+  },
+  "25年1月": {
+    "type": "时间",
+    "description": "包含25年1月，例如：25年1月 --》 where 自然年=2025 AND 财月='1月'",
+    "create_time": "2025-01-27 10:00:00",
+    "usage_count": 0
+  },
+  "25年2月": {
+    "type": "时间",
+    "description": "包含25年2月，例如：25年2月 --》 where 自然年=2025 AND 财月='2月'",
+    "create_time": "2025-01-27 10:00:00",
+    "usage_count": 0
+  },
+  "25年3月": {
+    "type": "时间",
+    "description": "包含25年3月，例如：25年3月 --》 where 自然年=2025 AND 财月='3月'",
+    "create_time": "2025-01-27 10:00:00",
+    "usage_count": 0
+  },
+  "25年4月": {
+    "type": "时间",
+    "description": "包含25年4月，例如：25年4月 --》 where 自然年=2025 AND 财月='4月'",
+    "create_time": "2025-01-27 10:00:00",
+    "usage_count": 0
+  },
+  "25年5月": {
+    "type": "时间",
+    "description": "包含25年5月，例如：25年5月 --》 where 自然年=2025 AND 财月='5月'",
+    "create_time": "2025-01-27 10:00:00",
+    "usage_count": 0
+  },
+  "25年6月": {
+    "type": "时间",
+    "description": "包含25年6月，例如：25年6月 --》 where 自然年=2025 AND 财月='6月'",
+    "create_time": "2025-01-27 10:00:00",
+    "usage_count": 0
+  },
+  "7月": {
+    "type": "时间",
+    "description": "包含7月，例如：7月 --》 where 财月='7月'",
+    "create_time": "2025-01-27 10:00:00",
+    "usage_count": 0
+  },
+  "8月": {
+    "type": "时间",
+    "description": "包含8月，例如：8月 --》 where 财月='8月'",
+    "create_time": "2025-01-27 10:00:00",
+    "usage_count": 0
+  },
+  "9月": {
+    "type": "时间",
+    "description": "包含9月，例如：9月 --》 where 财月='9月'",
+    "create_time": "2025-01-27 10:00:00",
+    "usage_count": 0
+  },
+  "10月": {
+    "type": "时间",
+    "description": "包含10月，例如：10月 --》 where 财月='10月'",
+    "create_time": "2025-01-27 10:00:00",
+    "usage_count": 0
+  },
+  "11月": {
+    "type": "时间",
+    "description": "包含11月，例如：11月 --》 where 财月='11月'",
+    "create_time": "2025-01-27 10:00:00",
+    "usage_count": 0
+  },
+  "12月": {
+    "type": "时间",
+    "description": "包含12月，例如：12月 --》 where 财月='12月'",
+    "create_time": "2025-01-27 10:00:00",
+    "usage_count": 0
+  },
+  "1月": {
+    "type": "时间",
+    "description": "包含1月，例如：1月 --》 where 财月='1月'",
+    "create_time": "2025-01-27 10:00:00",
+    "usage_count": 0
+  },
+  "2月": {
+    "type": "时间",
+    "description": "包含2月，例如：2月 --》 where 财月='2月'",
+    "create_time": "2025-01-27 10:00:00",
+    "usage_count": 0
+  },
+  "3月": {
+    "type": "时间",
+    "description": "包含3月，例如：3月 --》 where 财月='3月'",
+    "create_time": "2025-01-27 10:00:00",
+    "usage_count": 0
+  },
+  "4月": {
+    "type": "时间",
+    "description": "包含4月，例如：4月 --》 where 财月='4月'",
+    "create_time": "2025-01-27 10:00:00",
+    "usage_count": 0
+  },
+  "5月": {
+    "type": "时间",
+    "description": "包含5月，例如：5月 --》 where 财月='5月'",
+    "create_time": "2025-01-27 10:00:00",
+    "usage_count": 0
+  },
+  "6月": {
+    "type": "时间",
+    "description": "包含6月，例如：6月 --》 where 财月='6月'",
+    "create_time": "2025-01-27 10:00:00",
+    "usage_count": 0
+  },
   "今年": {
     "type": "时间",
     "description": "包含25  ， 例如： 25年    --》   where  自然年=2025 ",
@@ -147,6 +297,12 @@
     "type": "实体",
     "description": "",
     "create_time": "2025-07-24 17:42:58",
+    "usage_count": 0
+  },
+  "geek": {
+    "type": "实体",
+    "description": "",
+    "create_time": "2025-01-27 10:00:00",
     "usage_count": 0
   },
   "小新": {
