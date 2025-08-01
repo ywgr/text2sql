@@ -736,6 +736,10 @@ class Text2SQLQueryEngine:
         
         sql, analysis = self._extract_sql_and_analysis(response)
         
+        # 强制应用时间条件修正
+        if sql and not sql.startswith("API调用失败"):
+            sql = self._force_apply_time_conditions(sql, prompt)
+        
         # 聚类验证
         if sql and not sql.startswith("API调用失败"):
             clustering_validation = self.validate_clustering_sql(sql, prompt)
@@ -748,6 +752,67 @@ class Text2SQLQueryEngine:
                     analysis += f"\n\n【聚类修正】\n根据聚类要求修正了SQL：\n{corrected_sql}"
         
         return sql, analysis
+    
+    def _force_apply_time_conditions(self, sql, prompt):
+        """强制应用时间条件修正"""
+        import re
+        
+        # 从提示词中提取时间条件
+        time_conditions = []
+        
+        # 检查提示词中的WHERE条件
+        where_match = re.search(r'WHERE条件:\s*(.+)', prompt)
+        if where_match:
+            where_conditions = where_match.group(1).split(' AND ')
+            for condition in where_conditions:
+                condition = condition.strip()
+                if any(keyword in condition for keyword in ['自然年', '财月', '财周']):
+                    time_conditions.append(condition)
+        
+        if not time_conditions:
+            return sql
+        
+        # 检查SQL中是否已经包含正确的时间条件
+        has_correct_time = True
+        
+        # 检查自然年条件
+        if any('自然年=2025' in cond for cond in time_conditions):
+            if '自然年 = 2025' not in sql and '自然年=2025' not in sql:
+                has_correct_time = False
+        
+        # 检查财月条件
+        if any('财月=' in cond for cond in time_conditions):
+            if '财月 = ' not in sql and '财月=' not in sql:
+                has_correct_time = False
+        
+        # 如果时间条件不正确，强制修正
+        if not has_correct_time:
+            print("检测到时间条件不正确，强制修正...")
+            
+            # 移除错误的时间条件
+            sql = re.sub(r'AND\s+自然年\s*=\s*\([^)]+\)', '', sql)
+            sql = re.sub(r'AND\s+财月\s*=\s*[^AND\s]+', '', sql)
+            
+            # 在WHERE子句中添加正确的时间条件
+            where_match = re.search(r'WHERE\s+(.*?)(?=\s*ORDER\s+BY|\s*GROUP\s+BY|\s*HAVING|\s*$)', sql, re.IGNORECASE | re.DOTALL)
+            if where_match:
+                where_clause = where_match.group(1).strip()
+                # 添加时间条件
+                for condition in time_conditions:
+                    if condition not in where_clause:
+                        where_clause += f" AND {condition}"
+                
+                # 替换WHERE子句
+                sql = sql.replace(where_match.group(1), where_clause)
+            else:
+                # 如果没有WHERE子句，添加一个
+                from_match = re.search(r'FROM\s+.*?(?=\s*WHERE|\s*ORDER\s+BY|\s*GROUP\s+BY|\s*HAVING|\s*$)', sql, re.IGNORECASE | re.DOTALL)
+                if from_match:
+                    from_clause_end = from_match.end()
+                    where_clause = ' AND '.join(time_conditions)
+                    sql = sql[:from_clause_end] + ' WHERE ' + where_clause + sql[from_clause_end:]
+        
+        return sql
     
     def _fix_clustering_sql(self, sql, suggestions):
         """根据聚类建议修正SQL"""
