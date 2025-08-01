@@ -413,43 +413,7 @@ def show_sql_query_page_v25(system):
         else:
             st.info("请在左侧输入问题并点击按钮进行查询，分析结果将显示在这里。")
 
-def main():
-    st.set_page_config(page_title="TEXT2SQL系统 V2.5", page_icon="🔍", layout="wide")
-    st.title("TEXT2SQL系统 V2.5 - 2.5_query内核 + V2.4 UI")
-    if 'system_v25' not in st.session_state:
-        system = Text2SQLQueryEngine(
-            table_knowledge=load_json('table_knowledge.json'),
-            relationships=load_json('table_relationships.json'),
-            business_rules=load_json('business_rules.json'),
-            product_knowledge=load_json('product_knowledge.json'),
-            historical_qa=load_json('historical_qa.json') if os.path.exists('historical_qa.json') else [],
-            vanna=VannaWrapper(),
-            db_manager=DatabaseManager(),
-            prompt_templates=load_json('prompt_templates.json') if os.path.exists('prompt_templates.json') else {}
-        )
-        # 加载数据库配置
-        system.load_database_configs()
-        st.session_state.system_v25 = system
-    else:
-        system = st.session_state.system_v25
-    page = st.sidebar.selectbox(
-        "选择功能模块",
-        ["SQL查询", "数据库管理", "表结构管理", "产品知识库", "业务规则管理", "提示词管理", "系统监控"]
-    )
-    if page == "SQL查询":
-        show_sql_query_page_v25(system)
-    elif page == "数据库管理":
-        show_database_management_page_v23(system)
-    elif page == "表结构管理":
-        show_table_management_page_v23(system)
-    elif page == "产品知识库":
-        show_product_knowledge_page_v23(system)
-    elif page == "业务规则管理":
-        show_business_rules_page_v23(system)
-    elif page == "提示词管理":
-        show_prompt_templates_page_v23(system)
-    elif page == "系统监控":
-        show_system_monitoring_page_v23(system)
+# 移除重复的main函数，保留更完整的版本
 
 
 def show_sql_query_page_v23(system):
