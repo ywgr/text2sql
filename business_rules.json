@@ -1,10 +1,12 @@
 {
-  "X月": "如果调用 表：[dtsupply_summary]    where 财月='X月'  and  财周='ttl' ，其它表： 财月='X月'  ’",
+  "X月": "如果调用 表：[dtsupply_summary]    where 财月='X月'  and  财周='ttl' ，其它表： 财月='X月'  '",
   "年": " 自然年 or 财年 ， 如有自然年字段，优先选择自然年",
   "周转": "DOI",
   "物料编码": "MTM or PN ",
   "预测": "FCST",
-  "25 ": "2025",
+  "25年": "自然年=2025",
+  "25 ": "自然年=2025",
+  "7月": "财月='7月'",
   "数量": "Qty",
   "业务线": "Segment",
   "消费": "CON",
@@ -27,7 +29,7 @@
   "GEEK": "[roadmap family] like  '%GEEK%' and  [group]='ttl'",
   "小新": "[roadmap family] like  '%小新%' and  [group]='ttl'",
   "小新Pro": "[roadmap family] like  '%小新pro%' and  [group]='ttl'",
-  "消台,CON DT": "如存在 model  ： model=‘ttl’  ，如不存在model ： 总量",
+  "消台,CON DT": "如存在 model  ： model='ttl'  ，如不存在model ： 总量",
   "一体机": "model='aio'",
   "供应，commit，CMT": "FF_IDSS_Data_CON_BAK.dbo.condt_COMMIT .Qty"
 }
