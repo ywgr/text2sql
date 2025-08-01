@@ -1,0 +1,96 @@
+{
+  "database_configs": {
+    "mssql_primary": {
+      "type": "mssql",
+      "config": {
+        "server": "10.97.34.39",
+        "database": "FF_IDSS_Dev_FF",
+        "username": "FF_User",
+        "password": "Grape!0808",
+        "driver": "ODBC Driver 18 for SQL Server",
+        "encrypt": "no",
+        "trust_server_certificate": "yes"
+      },
+      "description": "主要MSSQL数据库配置"
+    },
+    "mssql_alternative": {
+      "type": "mssql",
+      "config": {
+        "server": "10.97.34.39",
+        "database": "FF_IDSS_Dev_FF",
+        "username": "ff_user",
+        "password": "grape!0808",
+        "driver": "ODBC Driver 18 for SQL Server",
+        "encrypt": "no",
+        "trust_server_certificate": "yes"
+      },
+      "description": "备用MSSQL数据库配置（小写用户名密码）"
+    },
+    "mssql_windows_auth": {
+      "type": "mssql",
+      "config": {
+        "server": "10.97.34.39",
+        "database": "FF_IDSS_Dev_FF",
+        "driver": "ODBC Driver 18 for SQL Server",
+        "encrypt": "no",
+        "trust_server_certificate": "yes",
+        "trusted_connection": "yes"
+      },
+      "description": "Windows认证配置"
+    },
+    "sqlite_local": {
+      "type": "sqlite",
+      "config": {
+        "file_path": "local_database.db"
+      },
+      "description": "本地SQLite数据库配置"
+    }
+  },
+  "connection_troubleshooting": {
+    "common_issues": [
+      {
+        "error": "用户 'FF_User' 登录失败",
+        "solution": "联系数据库管理员确认正确的用户名和密码",
+        "check_items": [
+          "用户名是否正确",
+          "密码是否正确",
+          "用户是否被禁用",
+          "用户是否有访问数据库的权限"
+        ]
+      },
+      {
+        "error": "SSL 提供程序: 证书链是由不受信任的颁发机构颁发的",
+        "solution": "使用不加密连接或配置正确的SSL证书",
+        "check_items": [
+          "设置 encrypt=no",
+          "设置 trust_server_certificate=yes",
+          "联系数据库管理员配置SSL证书"
+        ]
+      },
+      {
+        "error": "未发现数据源名称并且未指定默认驱动程序",
+        "solution": "安装正确的ODBC驱动",
+        "check_items": [
+          "安装 Microsoft ODBC Driver 18 for SQL Server",
+          "或安装 Microsoft ODBC Driver 17 for SQL Server",
+          "确认驱动在系统PATH中"
+        ]
+      },
+      {
+        "error": "网络连接失败",
+        "solution": "检查网络连接和防火墙设置",
+        "check_items": [
+          "确认服务器地址正确",
+          "确认端口1433可访问",
+          "检查防火墙设置",
+          "检查网络连接"
+        ]
+      }
+    ],
+    "test_commands": [
+      "ping 10.97.34.39",
+      "telnet 10.97.34.39 1433",
+      "sqlcmd -S 10.97.34.39 -U FF_User -P Grape!0808 -Q 'SELECT 1'"
+    ]
+  }
+} 

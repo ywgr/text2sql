@@ -1,0 +1,13 @@
+{
+  "type": "mssql",
+  "config": {
+    "server": "10.97.34.39",
+    "database": "FF_IDSS_Dev_FF",
+    "username": "AI_User",
+    "password": "D!O$LYHSVNSL",
+    "driver": "ODBC Driver 18 for SQL Server",
+    "encrypt": "no",
+    "trust_server_certificate": "yes"
+  },
+  "description": "使用正确凭据的数据库配置"
+}

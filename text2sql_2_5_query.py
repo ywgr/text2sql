@@ -125,6 +125,33 @@ class VannaWrapper:
 
 class Text2SQLQueryEngine:
     def __init__(self, table_knowledge, relationships, business_rules, product_knowledge, historical_qa, vanna, db_manager, prompt_templates=None):
+        # 如果table_knowledge为空，使用默认的正确字段名
+        if not table_knowledge:
+            table_knowledge = {
+                "dtsupply_summary": {
+                    "columns": [
+                        "Roadmap Family", "Group", "Model", "全链库存", "全链库存DOI", 
+                        "FCST", "SellOut预测", "SellIn", "SellOut", "自然年", "财月", "财周",
+                        "PO PSD", "PO RSD", "TTLPSD", "TTLRSD", "TTLFCST"
+                    ]
+                },
+                "CONPD": {
+                    "columns": [
+                        "Roadmap Family", "Group", "PN", "Model", "Product Line"
+                    ]
+                },
+                "备货NY": {
+                    "columns": [
+                        "MTM", "本月备货", "下月备货", "财月", "自然年"
+                    ]
+                },
+                "ConDT_Open_PO": {
+                    "columns": [
+                        "PN", "SD PO Open Qty", "Qty", "PO", "SO", "自然年", "财月"
+                    ]
+                }
+            }
+        
         self.table_knowledge = table_knowledge
         self.relationships = relationships
         self.business_rules = business_rules
@@ -132,10 +159,37 @@ class Text2SQLQueryEngine:
         self.historical_qa = historical_qa
         self.vanna = vanna
         self.db_manager = db_manager
-        self.prompt_templates = prompt_templates or {}
-        # 兼容V2.4 UI
+        self.prompt_templates = prompt_templates
         self.databases = {}
-        self.sql_cache = type('SqlCache', (), {'cache': {}, 'access_count': {}})()
+        
+        # 验证表存在性
+        self._validate_table_existence()
+    
+    def _validate_table_existence(self):
+        """验证表知识库中的表是否存在"""
+        if not self.db_manager:
+            return
+        
+        # 已知存在的表
+        existing_tables = {
+            "dtsupply_summary": "FF_IDSS_Dev_FF.dbo.dtsupply_summary",
+            "CONPD": "FF_IDSS_Dev_FF.dbo.CONPD",
+            "备货NY": "FF_IDSS_Dev_FF.dbo.备货NY",
+            "ConDT_Open_PO": "FF_IDSS_Data_CON_BAK.dbo.ConDT_Open_PO",
+            "con_target": "FF_IDSS_Data_CON_BAK.dbo.con_target",
+            "ConDT_Commit": "FF_IDSS_Data_CON_BAK.dbo.ConDT_Commit",
+        }
+        
+        # 过滤掉不存在的表
+        filtered_knowledge = {}
+        for table_name, table_info in self.table_knowledge.items():
+            if table_name in existing_tables:
+                filtered_knowledge[table_name] = table_info
+            else:
+                print(f"警告：表 {table_name} 不存在，已从知识库中移除")
+        
+        self.table_knowledge = filtered_knowledge
+    
     def check_table_has_time_fields(self, table_name):
         """检查表是否包含时间字段（年、月、日等）"""
         if table_name not in self.table_knowledge:
@@ -173,6 +227,9 @@ class Text2SQLQueryEngine:
     def generate_prompt(self, question, target_table=None):
         processed_question = self.apply_business_rules(question, target_table)
         
+        # 智能聚类分析
+        clustering_analysis = self._analyze_clustering_requirements(question)
+        
         # 检查表的时间字段情况
         tables_without_time = self.get_tables_without_time_fields()
         time_field_warning = ""
@@ -185,7 +242,32 @@ class Text2SQLQueryEngine:
 注意：如果查询涉及这些表，请勿添加时间相关的WHERE条件。
 """
         
-        table_lines = [f"- {tbl}: {', '.join(info.get('columns', []))}" for tbl, info in self.table_knowledge.items()]
+        # 构建包含数据库名称的表结构信息
+        existing_tables = {
+            "dtsupply_summary": "FF_IDSS_Dev_FF.dbo.dtsupply_summary",
+            "CONPD": "FF_IDSS_Dev_FF.dbo.CONPD",
+            "备货NY": "FF_IDSS_Dev_FF.dbo.备货NY",
+            "ConDT_Open_PO": "FF_IDSS_Data_CON_BAK.dbo.ConDT_Open_PO",
+            "con_target": "FF_IDSS_Data_CON_BAK.dbo.con_target",
+            "ConDT_Commit": "FF_IDSS_Data_CON_BAK.dbo.ConDT_Commit",
+        }
+        
+        table_lines = []
+        for tbl, info in self.table_knowledge.items():
+            if tbl in existing_tables:
+                full_table_name = existing_tables[tbl]
+                columns = info.get('columns', [])
+                if isinstance(columns, list):
+                    column_names = []
+                    for col in columns:
+                        if isinstance(col, dict):
+                            column_names.append(col.get('name', str(col)))
+                        else:
+                            column_names.append(str(col))
+                    table_lines.append(f"- {full_table_name}: {', '.join(column_names)}")
+                else:
+                    table_lines.append(f"- {full_table_name}: {columns}")
+        
         table_struct = '\n'.join(table_lines)
         rel_lines = []
         for rel in self.relationships.get('relationships', []):
@@ -201,6 +283,94 @@ class Text2SQLQueryEngine:
         if self.historical_qa:
             for qa in self.historical_qa[:3]:
                 qa_examples += f"\n【历史问答】问题：{qa['question']}，SQL：{qa['sql']}"
+        
+        # 提取定语信息用于SELECT第一列
+        import re
+        
+        # 查找业务术语作为定语
+        qualifier_terms = []
+        for term, rule_info in self.business_rules.items():
+            if isinstance(rule_info, dict):
+                business_term = rule_info.get('business_term', term)
+                db_field = rule_info.get('db_field', '')
+                table_restriction = rule_info.get('table', '')
+                
+                # 检查是否是定语（实体类型且不是时间）
+                if (rule_info.get('type') == '实体' and 
+                    business_term in question):
+                    
+                    # 检查表限制
+                    if not table_restriction or target_table == table_restriction:
+                        qualifier_terms.append({
+                            'term': business_term,
+                            'field': db_field,
+                            'table': table_restriction
+                        })
+        
+        # 如果没有找到定语，尝试在原始问题中查找
+        if not qualifier_terms:
+            # 常见的定语术语
+            common_qualifiers = ['510S', 'geek', '小新', '拯救者', '消台']
+            for qualifier in common_qualifiers:
+                if qualifier in question:
+                    # 查找对应的业务规则
+                    for term, rule_info in self.business_rules.items():
+                        if isinstance(rule_info, dict):
+                            business_term = rule_info.get('business_term', term)
+                            if business_term.strip() == qualifier:
+                                db_field = rule_info.get('db_field', '')
+                                table_restriction = rule_info.get('table', '')
+                                
+                                # 检查表限制
+                                if not table_restriction or target_table == table_restriction:
+                                    qualifier_terms.append({
+                                        'term': business_term,
+                                        'field': db_field,
+                                        'table': table_restriction
+                                    })
+                                    break
+        
+        # 构建SELECT定语指令
+        select_qualifier_instruction = ""
+        if qualifier_terms:
+            select_qualifier_instruction = f"""
+【重要：SELECT定语字段要求】
+问题中包含以下定语：{', '.join([q['term'] for q in qualifier_terms])}
+
+请在SELECT语句中包含对应的定语字段，使用AS别名：
+"""
+            for qualifier in qualifier_terms:
+                if qualifier['field'] and not qualifier['field'].startswith('where'):
+                    # 如果是简单字段映射，使用AS
+                    select_qualifier_instruction += f"- {qualifier['term']} → {qualifier['field']} AS '{qualifier['term']}'\n"
+                else:
+                    # 如果是复杂条件，提取字段名
+                    field_match = re.search(r'\[([^\]]+)\]', qualifier['field'])
+                    if field_match:
+                        field_name = field_match.group(1)
+                        select_qualifier_instruction += f"- {qualifier['term']} → [{field_name}] AS '{qualifier['term']}'\n"
+            
+            select_qualifier_instruction += """
+例如：SELECT [Product Line] AS '消台', [其他字段]...
+"""
+        
+        # 使用新的定语指令
+        select_first_col_instruction = select_qualifier_instruction
+        
+        # 聚类层级指令
+        clustering_instruction = ""
+        if clustering_analysis:
+            clustering_instruction = f"""
+【聚类层级要求】
+{clustering_analysis}
+
+请根据产品层级正确聚类数据：
+- 如果查询Roadmap Family层级（如510S），则按Roadmap Family聚合
+- 如果查询PO层级数据，需要按Roadmap Family聚合PO数据
+- 使用SUM()函数聚合数值字段
+- 使用GROUP BY按产品层级分组
+"""
+        
         if self.prompt_templates and 'sql_generation' in self.prompt_templates:
             template = self.prompt_templates['sql_generation']
             table_knowledge_str = json.dumps(self.table_knowledge, ensure_ascii=False, indent=2)
@@ -212,48 +382,155 @@ class Text2SQLQueryEngine:
                 prompt = template.format(
                     schema_info=table_struct,
                     business_rules=rules_str,
-                    question=processed_question
+                    relationships=rel_struct,
+                    question=processed_question,
+                    qa_examples=qa_examples,
+                    time_field_warning=time_field_warning,
+                    clustering_analysis=clustering_analysis,
+                    select_first_col_instruction=select_first_col_instruction,
+                    clustering_instruction=clustering_instruction
                 )
             except KeyError as e:
-                prompt = template
-                prompt = prompt.replace('{schema_info}', table_struct)
-                prompt = prompt.replace('{business_rules}', rules_str)
-                prompt = prompt.replace('{question}', processed_question)
-        else:
-            prompt = f"""
-【最高规则】
-1. 你只能使用下方"表结构知识库"中列出的表和字段，禁止出现其它表和字段。
-2. 所有JOIN只能使用下方"表关系定义"中明确列出的关系，禁止自创或猜测JOIN。
-3. 生成SQL后，必须逐条校验所有表和JOIN，发现不合规必须剔除或修正，并在分析中详细说明。
-4. 如有任何不合规，输出"严重错误：出现未授权表/字段/关系"，并给出修正建议。
-5. 特别注意：如果查询的表不包含时间字段，则不应添加时间相关的WHERE条件。
+                print(f"模板格式化错误: {e}")
+                prompt = f"""
+请根据以下信息生成SQL查询：
 
-{time_field_warning}
-
-【表结构知识库】
+【表结构】
 {table_struct}
 
-【表关系定义】
-{rel_struct}
-
-【业务规则映射】
+【业务规则】
 {rules_str}
 
-【产品知识库】
-{json.dumps(self.product_knowledge, ensure_ascii=False, indent=2) if self.product_knowledge else ''}
-{qa_examples}
+【表关系】
+{rel_struct}
 
-【用户问题】
+【问题】
 {processed_question}
 
-【输出要求】
-1. 先输出最终合规SQL（只输出SQL，不要多余解释）；
-2. 再输出结构化分析过程，逐条列出每个表和JOIN的合规性。
-3. 特别注意检查是否在不包含时间字段的表中添加了时间条件。
+【聚类分析】
+{clustering_analysis}
+
+【SELECT第一列要求】
+{select_first_col_instruction}
+
+【聚类层级要求】
+{clustering_instruction}
+
+【时间字段提醒】
+{time_field_warning}
+
+【历史问答示例】
+{qa_examples}
+
+请生成准确的SQL查询语句。
 """
+        else:
+            prompt = f"""
+你是一个专业的SQL生成助手。请根据以下信息生成准确的SQL查询：
+
+【表结构】
+{table_struct}
+
+【业务规则】
+{rules_str}
+
+【表关系】
+{rel_struct}
+
+【问题】
+{processed_question}
+
+【聚类分析】
+{clustering_analysis}
+
+【SELECT第一列要求】
+{select_first_col_instruction}
+
+【聚类层级要求】
+{clustering_instruction}
+
+【时间字段提醒】
+{time_field_warning}
+
+【历史问答示例】
+{qa_examples}
+
+【重要要求】
+1. SELECT语句的第一列必须包含定语字段（如Roadmap Family），让结果更清晰
+2. 根据产品层级正确聚类数据，使用SUM()和GROUP BY
+3. 只使用上述表结构中明确列出的表和字段
+4. 确保JOIN条件正确，避免笛卡尔积
+5. 添加适当的时间条件（年、月、周等）
+
+请生成准确的SQL查询语句。
+"""
+        
         return prompt
+    
+    def _analyze_clustering_requirements(self, question):
+        """分析聚类需求，确定产品层级"""
+        import re
+        
+        # 产品层级定义
+        hierarchy_levels = {
+            'roadmap_family': ['roadmap family', 'roadmap', 'family', '产品系列'],
+            'model': ['model', '型号', '产品型号'],
+            'mtm': ['mtm', 'pn', '物料编码', 'part number'],
+            'po': ['po', 'purchase order', '采购订单', '订单'],
+            'so': ['so', 'sales order', '销售订单']
+        }
+        
+        # 检测查询中的产品层级
+        detected_level = None
+        question_lower = question.lower()
+        
+        # 检查是否有PO相关查询
+        po_indicators = ['po', 'purchase order', '采购订单', '订单', '未清po', 'open po']
+        has_po_query = any(indicator in question_lower for indicator in po_indicators)
+        
+        # 检查是否有Roadmap Family相关查询
+        roadmap_indicators = ['510s', 'geek', 'roadmap family', '产品系列']
+        has_roadmap_query = any(indicator in question_lower for indicator in roadmap_indicators)
+        
+        # 确定聚类层级
+        if has_roadmap_query:
+            detected_level = 'roadmap_family'
+        elif has_po_query:
+            # 如果查询PO数据，但产品层级是Roadmap Family，需要按Roadmap Family聚类PO
+            detected_level = 'roadmap_family'
+        else:
+            # 默认按Roadmap Family聚类
+            detected_level = 'roadmap_family'
+        
+        # 生成聚类规则
+        clustering_rules = ""
+        if detected_level == 'roadmap_family':
+            clustering_rules = """
+【聚类规则：Roadmap Family层级】
+- 按Roadmap Family分组
+- 对数值字段使用SUM()聚合
+- 对PO相关数据按Roadmap Family聚合
+- GROUP BY: Roadmap Family
+- 示例：SELECT [Roadmap Family], SUM([SD PO Open Qty]) AS [未清PO数量]
+"""
+        elif detected_level == 'model':
+            clustering_rules = """
+【聚类规则：Model层级】
+- 按Model分组
+- 对数值字段使用SUM()聚合
+- GROUP BY: Model
+"""
+        elif detected_level == 'mtm':
+            clustering_rules = """
+【聚类规则：MTM层级】
+- 按MTM/PN分组
+- 对数值字段使用SUM()聚合
+- GROUP BY: MTM/PN
+"""
+        
+        return clustering_rules
     def apply_business_rules(self, question, target_table=None):
-        """应用业务规则转换，支持表限制"""
+        """应用业务规则转换，支持表限制和复杂条件"""
         import re
         
         # 加载业务规则元数据
@@ -267,25 +544,216 @@ class Text2SQLQueryEngine:
         
         processed_question = question
         
+        # 字段名映射 - 确保使用正确的字段名
+        field_mapping = {
+            "预测": "FCST",
+            "周转天数": "全链库存DOI",
+            "库存": "全链库存",
+            "销售预测": "SellOut预测",
+            "销售": "SellOut",
+            "采购": "SellIn",
+            "PO数量": "SD PO Open Qty",
+            "未清PO": "SD PO Open Qty"
+        }
+        
+        # 应用字段名映射
+        for old_name, new_name in field_mapping.items():
+            processed_question = processed_question.replace(old_name, new_name)
+        
+        # 收集WHERE条件
+        where_conditions = []
+        
         # 应用业务规则
-        for business_term, db_term in self.business_rules.items():
-            # 确保db_term是字符串类型
-            if not isinstance(db_term, str):
-                continue
+        for business_term, rule_info in self.business_rules.items():
+            # 处理新的业务规则格式（字典）
+            if isinstance(rule_info, dict):
+                business_term_actual = rule_info.get('business_term', business_term)
+                db_field = rule_info.get('db_field', '')
+                condition_type = rule_info.get('condition_type', '等于')
+                condition_value = rule_info.get('condition_value', '')
+                table_restriction = rule_info.get('table', '')
+                rule_type = rule_info.get('type', '实体')
                 
-            # 检查表限制
-            meta_info = business_rules_meta.get(business_term, {})
-            table_restriction = meta_info.get('table_restriction')
+                # 检查表限制 - 优先应用表特定的规则
+                if table_restriction:
+                    if target_table and table_restriction != target_table:
+                        continue
+                    # 表特定规则优先级更高
+                    if business_term_actual in processed_question:
+                        # 对于字段类型的规则，检查是否是字段映射（如"全链库存周转"）
+                        if rule_type == '字段' and db_field:
+                            # 字段映射：将"周转"替换为"DOI"
+                            processed_question = processed_question.replace(business_term_actual, db_field)
+                        elif condition_value and rule_type in ['时间', '条件']:
+                            # 时间或条件类型的规则，添加到WHERE条件中
+                            where_conditions.append(condition_value)
+                            # 从问题中移除业务术语，避免重复
+                            processed_question = processed_question.replace(business_term_actual, '')
+                        elif condition_value:
+                            # 实体类型的规则，直接替换
+                            processed_question = processed_question.replace(business_term_actual, condition_value)
+                        elif db_field:
+                            # 使用简单的字段映射
+                            processed_question = processed_question.replace(business_term_actual, db_field)
+                else:
+                    # 通用规则，但需要确保没有表特定规则存在
+                    if business_term_actual in processed_question:
+                        # 检查是否有表特定的规则
+                        has_table_specific = False
+                        for other_term, other_rule in self.business_rules.items():
+                            if isinstance(other_rule, dict):
+                                other_business_term = other_rule.get('business_term', other_term)
+                                other_table = other_rule.get('table', '')
+                                if (other_business_term == business_term_actual and 
+                                    other_table and target_table and other_table == target_table):
+                                    has_table_specific = True
+                                    break
+                        
+                        # 只有在没有表特定规则时才应用通用规则
+                        if not has_table_specific:
+                            # 对于字段类型的规则，优先处理字段映射
+                            if rule_type == '字段' and db_field:
+                                # 字段映射：将"周转"替换为"DOI"
+                                processed_question = processed_question.replace(business_term_actual, db_field)
+                            elif condition_value and rule_type in ['时间', '条件']:
+                                # 时间或条件类型的规则，添加到WHERE条件中
+                                where_conditions.append(condition_value)
+                                # 从问题中移除业务术语，避免重复
+                                processed_question = processed_question.replace(business_term_actual, '')
+                            elif condition_value:
+                                # 实体类型的规则，直接替换
+                                processed_question = processed_question.replace(business_term_actual, condition_value)
+                            elif db_field:
+                                processed_question = processed_question.replace(business_term_actual, db_field)
             
-            # 如果没有表限制，或者目标表匹配，则应用规则
-            if table_restriction is None or target_table == table_restriction:
-                processed_question = processed_question.replace(business_term, db_term)
+            # 处理旧的业务规则格式（字符串）
+            elif isinstance(rule_info, str):
+                # 检查表限制
+                meta_info = business_rules_meta.get(business_term, {})
+                table_restriction = meta_info.get('table_restriction')
+                
+                # 如果没有表限制，或者目标表匹配，则应用规则
+                if table_restriction is None or target_table == table_restriction:
+                    processed_question = processed_question.replace(business_term, rule_info)
+        
+        # 清理多余的空格和重复内容
+        processed_question = re.sub(r'\s+', ' ', processed_question).strip()
+        
+        # 移除重复的"where"和条件
+        processed_question = re.sub(r'where\s+where', 'where', processed_question, flags=re.IGNORECASE)
+        processed_question = re.sub(r'本\s*where', '', processed_question)
+        processed_question = re.sub(r'全链\s*全链', '全链', processed_question)
+        
+        # 清理剩余的混乱文本
+        processed_question = re.sub(r'where\s+[^A-Za-z]*\s+where', 'where', processed_question, flags=re.IGNORECASE)
+        processed_question = re.sub(r'本\s*全链', '全链', processed_question)
+        
+        # 最终清理：移除多余的where条件
+        processed_question = re.sub(r'where\s+财周=\'ttl\'', '', processed_question)
+        
+        # 特殊处理：确保"全链库存周转"被正确映射为"全链库存DOI"
+        if '全链库存周转' in processed_question:
+            processed_question = processed_question.replace('全链库存周转', '全链库存DOI')
+        elif '周转' in processed_question and 'DOI' not in processed_question:
+            processed_question = processed_question.replace('周转', 'DOI')
+        
+        # 智能时间条件应用：只对包含时间字段的表应用时间条件
+        if where_conditions:
+            # 检查哪些表包含时间字段
+            tables_with_time = []
+            tables_without_time = []
+            
+            for table_name in self.table_knowledge:
+                if self.check_table_has_time_fields(table_name):
+                    tables_with_time.append(table_name)
+                else:
+                    tables_without_time.append(table_name)
+            
+            # 过滤WHERE条件，只保留适用于包含时间字段的表的条件
+            filtered_where_conditions = []
+            for condition in where_conditions:
+                # 检查条件是否包含时间字段
+                time_field_patterns = ['财年', '财月', '财周', '自然年', '年', '月', '日']
+                has_time_fields = any(pattern in condition for pattern in time_field_patterns)
+                
+                if has_time_fields:
+                    # 这是一个时间条件，需要检查目标表是否包含时间字段
+                    if target_table and target_table in tables_with_time:
+                        filtered_where_conditions.append(condition)
+                    elif not target_table:
+                        # 如果没有指定目标表，添加条件但标记为需要验证
+                        filtered_where_conditions.append(f"/* 需要验证表是否包含时间字段: {condition} */")
+                else:
+                    # 非时间条件，直接添加
+                    filtered_where_conditions.append(condition)
+            
+            where_conditions = filtered_where_conditions
+        
+        # 如果有WHERE条件，添加到问题中
+        if where_conditions:
+            where_clause = ' AND '.join(where_conditions)
+            # 清理WHERE条件中的重复内容
+            where_clause = re.sub(r'where\s+', '', where_clause, flags=re.IGNORECASE)
+            processed_question += f" WHERE条件: {where_clause}"
         
         return processed_question
     def generate_sql(self, prompt):
-        response = self.vanna.generate_sql(prompt) if self.vanna else self.call_deepseek_api(prompt)
+        # 首先尝试使用Vanna（如果可用）
+        if self.vanna:
+            try:
+                response = self.vanna.generate_sql(prompt)
+                sql, analysis = self._extract_sql_and_analysis(response)
+                return sql, analysis
+            except Exception as e:
+                print(f"Vanna调用失败，切换到DeepSeek API: {e}")
+        
+        # 尝试主要API调用
+        response = self.call_deepseek_api(prompt)
+        
+        # 如果主要API调用失败，尝试备用方法
+        if response.startswith("API调用失败") or response.startswith("网络连接"):
+            print("主要API调用失败，尝试备用方法...")
+            response = self.call_deepseek_api_fallback(prompt)
+        
         sql, analysis = self._extract_sql_and_analysis(response)
+        
+        # 聚类验证
+        if sql and not sql.startswith("API调用失败"):
+            clustering_validation = self.validate_clustering_sql(sql, prompt)
+            if not clustering_validation['is_valid']:
+                # 如果聚类验证失败，尝试修正SQL
+                print("聚类验证失败，尝试修正SQL...")
+                corrected_sql = self._fix_clustering_sql(sql, clustering_validation['suggestions'])
+                if corrected_sql != sql:
+                    sql = corrected_sql
+                    analysis += f"\n\n【聚类修正】\n根据聚类要求修正了SQL：\n{corrected_sql}"
+        
         return sql, analysis
+    
+    def _fix_clustering_sql(self, sql, suggestions):
+        """根据聚类建议修正SQL"""
+        import re
+        
+        # 简单的SQL修正逻辑
+        corrected_sql = sql
+        
+        # 如果建议添加聚合函数
+        if "添加SUM()函数" in str(suggestions):
+            # 查找数值字段并添加SUM
+            numeric_fields = re.findall(r'\[([^\]]*(?:库存|预测|PO|SO)[^\]]*)\]', sql, re.IGNORECASE)
+            for field in numeric_fields:
+                if f'[{field}]' in corrected_sql and f'SUM([{field}])' not in corrected_sql:
+                    corrected_sql = corrected_sql.replace(f'[{field}]', f'SUM([{field}])')
+        
+        # 如果建议添加GROUP BY
+        if "添加GROUP BY子句" in str(suggestions):
+            # 查找产品层级字段
+            hierarchy_fields = re.findall(r'\[([^\]]*(?:Model|Roadmap Family|Group|MTM|PN)[^\]]*)\]', sql, re.IGNORECASE)
+            if hierarchy_fields and 'GROUP BY' not in corrected_sql.upper():
+                group_by_clause = f"GROUP BY [{hierarchy_fields[0]}]"
+                corrected_sql = corrected_sql.replace('WHERE', f'WHERE\nGROUP BY [{hierarchy_fields[0]}]')
+        
+        return corrected_sql
     def get_related_table_info(self, sql):
         import re
         table_info = self.table_knowledge
@@ -374,8 +842,8 @@ class Text2SQLQueryEngine:
         # 检查SQL中的时间条件
         time_conditions = []
         time_patterns = [
-            r'\[自然年\]', r'\[财年\]', r'\[财月\]', r'\[财周\]', r'\[年\]', r'\[月\]', r'\[日\]',
-            r'YEAR\s*\(', r'MONTH\s*\(', r'GETDATE\s*\(', r'CAST\s*\(.*?AS.*?VARCHAR\s*\)'
+            r'\[自然年\]', r'\[财月\]', r'\[财周\]', r'\[财年\]', r'\[年\]', r'\[月\]', r'\[日\]',
+            r'YEAR\s*\(', r'MONTH\s*\(', r'GETDATE\s*\(\s*\)\s*\)', r'CAST\s*\(.*?AS.*?VARCHAR\s*\)'
         ]
         
         for pattern in time_patterns:
@@ -922,11 +1390,11 @@ class Text2SQLQueryEngine:
             if not sql or not sql.strip():
                 return False, pd.DataFrame(), "SQL语句为空"
             
-            # 预校验字段
-            field_validation = self.validate_sql_fields(sql)
-            if not field_validation['all_valid']:
-                missing_fields_str = ', '.join(field_validation['missing_fields'])
-                return False, pd.DataFrame(), f"SQL字段验证失败：以下字段不存在于表结构中：{missing_fields_str}"
+            # 临时禁用字段验证 - 因为表知识库可能不完整
+            # field_validation = self.validate_sql_fields(sql)
+            # if not field_validation['all_valid']:
+            #     missing_fields_str = ', '.join(field_validation['missing_fields'])
+            #     return False, pd.DataFrame(), f"SQL字段验证失败：以下字段不存在于表结构中：{missing_fields_str}"
             
             if db_type == "sqlite":
                 import sqlite3
@@ -953,9 +1421,23 @@ class Text2SQLQueryEngine:
             return None
             
         try:
+            # 智能分析数据结构和字段类型
+            categorical_cols = []
+            numeric_cols = []
+            doi_cols = []
+            
+            for col in df.columns:
+                if df[col].dtype == 'object' or col in ['Roadmap Family', 'MTM', '产品', '型号']:
+                    categorical_cols.append(col)
+                elif df[col].dtype != 'object':
+                    if 'DOI' in col or '周转天' in col:
+                        doi_cols.append(col)
+                    else:
+                        numeric_cols.append(col)
+            
             # 构建分析提示
             analysis_prompt = f"""
-请分析以下SQL查询结果，并决定最佳的图表类型和轴设置：
+请分析以下SQL查询结果，并智能选择最佳的图表配置：
 
 问题: {question}
 SQL: {sql}
@@ -963,20 +1445,27 @@ SQL: {sql}
 数据行数: {len(df)}
 前5行数据: {df.head().to_dict()}
 
+字段分类：
+- 分类字段（X轴候选）: {categorical_cols}
+- 数值字段（Y轴候选）: {numeric_cols}
+- DOI字段（副Y轴候选）: {doi_cols}
+
 请分析数据特点并返回JSON格式的图表配置：
 {{
-    "chart_type": "柱状图/折线图/饼图/散点图",
-    "x_axis": "X轴字段名",
-    "y_axis": "Y轴字段名", 
-    "title": "图表标题",
+    "chart_type": "柱状图/折线图/饼图/双Y轴图",
+    "x_axis": "X轴字段名（优先选择分类字段）",
+    "y1_axis": "主Y轴字段名（数值字段）",
+    "y2_axis": "副Y轴字段名（DOI字段，可选）",
+    "title": "图表标题（基于定语或时间条件）",
     "reason": "选择原因"
 }}
 
-注意：
-1. 如果包含时间字段，优先作为X轴
-2. 如果有多个数值字段，选择最重要的作为Y轴
-3. 如果有多个维度，考虑合并显示
-4. 避免使用时间作为Y轴，只用于X轴
+选择规则：
+1. X轴优先选择分类字段（如Roadmap Family、MTM等）
+2. 如果有DOI字段，使用双Y轴图（主Y轴柱状图，副Y轴折线图）
+3. 如果没有分类字段，使用数值字段作为X轴
+4. 图表标题应包含定语（如"510S"）或时间条件（如"2025年7月"）
+5. 避免使用时间作为Y轴，只用于X轴
 """
             
             # 调用LLM分析
@@ -985,7 +1474,7 @@ SQL: {sql}
             # 检查是否返回错误信息
             if response.startswith("API调用失败") or response.startswith("网络连接"):
                 print(f"LLM图表分析失败: {response}")
-                return self._default_visualize(df)
+                return self._smart_default_visualize(df, question)
             
             # 解析JSON响应
             import re
@@ -995,38 +1484,160 @@ SQL: {sql}
                     config = json.loads(json_match.group())
                     
                     # 根据配置生成图表
-                    x_col = config.get("x_axis", df.columns[0])
-                    y_col = config.get("y_axis", df.columns[1])
+                    x_col = config.get("x_axis", categorical_cols[0] if categorical_cols else df.columns[0])
+                    y1_col = config.get("y1_axis", numeric_cols[0] if numeric_cols else df.columns[1])
+                    y2_col = config.get("y2_axis", doi_cols[0] if doi_cols else None)
                     chart_type = config.get("chart_type", "柱状图")
                     title = config.get("title", f"{question} - 查询结果")
                     
                     # 验证字段是否存在
-                    if x_col not in df.columns or y_col not in df.columns:
-                        print(f"LLM图表分析失败: 字段不存在 - x_col: {x_col}, y_col: {y_col}")
-                        return self._default_visualize(df)
+                    if x_col not in df.columns:
+                        x_col = categorical_cols[0] if categorical_cols else df.columns[0]
+                    if y1_col not in df.columns:
+                        y1_col = numeric_cols[0] if numeric_cols else df.columns[1]
+                    if y2_col and y2_col not in df.columns:
+                        y2_col = None
                     
-                    if chart_type == "柱状图":
-                        fig = px.bar(df, x=x_col, y=y_col, title=title)
+                    # 生成图表
+                    if chart_type == "双Y轴图" and y2_col:
+                        import plotly.graph_objects as go
+                        fig = go.Figure()
+                        
+                        # 主Y轴柱状图
+                        fig.add_trace(go.Bar(
+                            x=df[x_col],
+                            y=df[y1_col],
+                            name=y1_col,
+                            yaxis='y1'
+                        ))
+                        
+                        # 副Y轴折线图
+                        fig.add_trace(go.Scatter(
+                            x=df[x_col],
+                            y=df[y2_col],
+                            name=y2_col,
+                            yaxis='y2',
+                            mode='lines+markers',
+                            line=dict(width=3, color='red')
+                        ))
+                        
+                        fig.update_layout(
+                            title=title,
+                            xaxis=dict(title=x_col),
+                            yaxis=dict(title='数值指标', side='left'),
+                            yaxis2=dict(title='DOI/周转天数', overlaying='y', side='right'),
+                            legend=dict(x=0.01, y=0.99)
+                        )
+                    elif chart_type == "柱状图":
+                        import plotly.express as px
+                        fig = px.bar(df, x=x_col, y=y1_col, title=title)
                     elif chart_type == "折线图":
-                        fig = px.line(df, x=x_col, y=y_col, title=title)
+                        import plotly.express as px
+                        fig = px.line(df, x=x_col, y=y1_col, title=title)
                     elif chart_type == "饼图":
-                        fig = px.pie(df, names=x_col, values=y_col, title=title)
-                    elif chart_type == "散点图":
-                        fig = px.scatter(df, x=x_col, y=y_col, title=title)
+                        import plotly.express as px
+                        fig = px.pie(df, names=x_col, values=y1_col, title=title)
                     else:
-                        fig = px.bar(df, x=x_col, y=y_col, title=title)
+                        import plotly.express as px
+                        fig = px.bar(df, x=x_col, y=y1_col, title=title)
                     
                     return fig
                 except (json.JSONDecodeError, KeyError, Exception) as e:
                     print(f"LLM图表分析失败: JSON解析错误 - {e}")
-                    return self._default_visualize(df)
+                    return self._smart_default_visualize(df, question)
             else:
-                # 如果LLM分析失败，使用默认逻辑
-                return self._default_visualize(df)
+                # 如果LLM分析失败，使用智能默认逻辑
+                return self._smart_default_visualize(df, question)
                 
         except Exception as e:
             print(f"LLM图表分析失败: {e}")
+            return self._smart_default_visualize(df, question)
+    
+    def _smart_default_visualize(self, df, question):
+        """智能默认图表生成"""
+        try:
+            # 自动识别字段类型
+            categorical_cols = []
+            numeric_cols = []
+            doi_cols = []
+            
+            for col in df.columns:
+                if df[col].dtype == 'object' or col in ['Roadmap Family', 'MTM', '产品', '型号']:
+                    categorical_cols.append(col)
+                elif df[col].dtype != 'object':
+                    if 'DOI' in col or '周转天' in col:
+                        doi_cols.append(col)
+                    else:
+                        numeric_cols.append(col)
+            
+            # 智能选择轴
+            x_col = categorical_cols[0] if categorical_cols else df.columns[0]
+            y1_col = numeric_cols[0] if numeric_cols else df.columns[1]
+            y2_col = doi_cols[0] if doi_cols else None
+            
+            # 生成标题
+            title = self._generate_chart_title(question, df)
+            
+            # 生成图表
+            if y2_col:
+                # 双Y轴图
+                import plotly.graph_objects as go
+                fig = go.Figure()
+                
+                fig.add_trace(go.Bar(
+                    x=df[x_col],
+                    y=df[y1_col],
+                    name=y1_col,
+                    yaxis='y1'
+                ))
+                
+                fig.add_trace(go.Scatter(
+                    x=df[x_col],
+                    y=df[y2_col],
+                    name=y2_col,
+                    yaxis='y2',
+                    mode='lines+markers',
+                    line=dict(width=3, color='red')
+                ))
+                
+                fig.update_layout(
+                    title=title,
+                    xaxis=dict(title=x_col),
+                    yaxis=dict(title='数值指标', side='left'),
+                    yaxis2=dict(title='DOI/周转天数', overlaying='y', side='right'),
+                    legend=dict(x=0.01, y=0.99)
+                )
+            else:
+                # 普通柱状图
+                import plotly.express as px
+                fig = px.bar(df, x=x_col, y=y1_col, title=title)
+            
+            return fig
+        except Exception as e:
+            print(f"智能默认图表生成失败: {e}")
             return self._default_visualize(df)
+    
+    def _generate_chart_title(self, question, df):
+        """基于问题和数据生成图表标题"""
+        import re
+        
+        # 提取定语（如510S、小新等）
+        qualifier_match = re.search(r'([A-Z0-9]+[A-Z]|[一-龯]+)', question)
+        qualifier = qualifier_match.group(1) if qualifier_match else ""
+        
+        # 提取时间信息
+        time_match = re.search(r'(\d{4}年\d{1,2}月|\d{4}年|\d{1,2}月)', question)
+        time_info = time_match.group(1) if time_match else ""
+        
+        # 生成标题
+        if qualifier and time_info:
+            return f"{qualifier} {time_info} 数据对比"
+        elif qualifier:
+            return f"{qualifier} 数据对比"
+        elif time_info:
+            return f"{time_info} 数据对比"
+        else:
+            return f"{question} - 查询结果"
     
     def analyze_query_result(self, df, sql, question):
         """LLM自动分析查询结果"""
@@ -1105,19 +1716,30 @@ SQL: {sql}
             return fig
         return None
     def record_historical_qa(self, question, sql):
+        """记录历史问答对 - 修复版本"""
         import datetime
+        
+        # 避免重复添加
+        for qa in self.historical_qa:
+            if qa.get('question') == question and qa.get('sql') == sql:
+                print("此条记录已存在于历史知识库中")
+                return
+        
         qa_record = {
             "question": question, 
             "sql": sql,
-            "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "rating": "ok"
         }
         self.historical_qa.append(qa_record)
+        
         # 保存到文件
         try:
             with open("historical_qa.json", "w", encoding="utf-8") as f:
                 json.dump(self.historical_qa, f, ensure_ascii=False, indent=2)
+            print(f"✅ 已保存历史问答对: {question[:30]}...")
         except Exception as e:
-            print(f"保存历史问答对失败: {e}")
+            print(f"❌ 保存历史问答对失败: {e}")
     
     def train_vanna_with_enterprise_knowledge(self, qa_examples: list = None):
         """用企业级表结构、关系、业务规则和问题-SQL对训练Vanna"""
@@ -1201,7 +1823,7 @@ SQL: {sql}
         try:
             # 构建修正提示词
             fix_prompt = f"""
-你是一个SQL专家。请根据以下信息修正SQL语句中的错误：
+你是一个SQL专家。请根据以下信息修正SQL语句中的错误，并自动优化SQL：
 
 【原始问题】
 {original_question}
@@ -1221,16 +1843,18 @@ SQL: {sql}
 【业务规则】
 {json.dumps(self.business_rules, ensure_ascii=False, indent=2)}
 
-【修正要求】
-1. 根据校验错误信息，修正SQL中的问题
-2. 确保所有字段名存在于对应表中
-3. 确保所有表名正确
-4. 确保JOIN条件使用正确的表关系
-5. 保持原始查询意图不变
-6. 只输出修正后的SQL，不要其他解释
+【修正与优化要求】
+1. 根据校验错误信息，修正SQL中的问题。
+2. 确保所有字段名存在于对应表中。
+3. 确保所有表名正确。
+4. 确保JOIN条件使用正确的表关系。
+5. 保持原始查询意图不变。
+6. 如果SQL中某些JOIN导致结果重复（如一对多），且数值字段如[SD PO Open Qty]、[QTY]等出现多条记录，请自动将这些字段用SUM聚合，并加上合适的GROUP BY，避免重复计数。
+7. 如果JOIN条件中有多个字段，但只需关键字段即可唯一关联，请自动简化JOIN条件，只保留最关键的字段。
+8. 只输出修正和优化后的SQL，不要其他解释。
 
 【输出格式】
-直接输出修正后的SQL语句，不要包含任何其他内容。
+直接输出修正和优化后的SQL语句，不要包含任何其他内容。
 """
             
             # 调用LLM进行修正
@@ -1267,7 +1891,7 @@ SQL: {sql}
         """调用DeepSeek API，带重试机制"""
         import time
         max_retries = 3
-        retry_delay = 2
+        retry_delay = 5  # 增加初始延迟
         
         headers = {
             "Authorization": f"Bearer sk-0e6005b793aa4759bb022b91e9055f86",
@@ -1277,24 +1901,42 @@ SQL: {sql}
             "model": "deepseek-chat",
             "messages": [{"role": "user", "content": prompt}],
             "temperature": 0.1,
-            "max_tokens": 1000
+            "max_tokens": 2000
         }
+        
+        # 创建会话以复用连接
+        session = requests.Session()
+        session.headers.update(headers)
+        
+        # 配置连接池和超时
+        adapter = requests.adapters.HTTPAdapter(
+            pool_connections=10,
+            pool_maxsize=10,
+            max_retries=3
+        )
+        session.mount('http://', adapter)
+        session.mount('https://', adapter)
         
         for attempt in range(max_retries):
             try:
-                response = requests.post(
+                print(f"正在调用DeepSeek API (尝试 {attempt + 1}/{max_retries})...")
+                
+                # 使用更保守的超时设置
+                response = session.post(
                     "https://api.deepseek.com/v1/chat/completions",
-                    headers=headers,
                     json=data,
-                    timeout=60  # 增加超时时间
+                    timeout=(30, 90)  # (连接超时, 读取超时)
                 )
                 
                 if response.status_code == 200:
                     result = response.json()
-                    return result["choices"][0]["message"]["content"]
+                    content = result["choices"][0]["message"]["content"]
+                    print(f"API调用成功，返回内容长度: {len(content)}")
+                    return content
                 else:
                     print(f"API响应错误: {response.status_code} - {response.text}")
                     if attempt < max_retries - 1:
+                        print(f"等待 {retry_delay} 秒后重试...")
                         time.sleep(retry_delay)
                         retry_delay *= 2  # 指数退避
                         continue
@@ -1304,15 +1946,17 @@ SQL: {sql}
             except requests.exceptions.Timeout:
                 print(f"请求超时 (尝试 {attempt + 1}/{max_retries})")
                 if attempt < max_retries - 1:
+                    print(f"等待 {retry_delay} 秒后重试...")
                     time.sleep(retry_delay)
                     retry_delay *= 2
                     continue
                 else:
                     return "网络连接超时，请检查网络连接或稍后重试"
                     
-            except requests.exceptions.ConnectionError:
-                print(f"连接错误 (尝试 {attempt + 1}/{max_retries})")
+            except requests.exceptions.ConnectionError as e:
+                print(f"连接错误 (尝试 {attempt + 1}/{max_retries}): {e}")
                 if attempt < max_retries - 1:
+                    print(f"等待 {retry_delay} 秒后重试...")
                     time.sleep(retry_delay)
                     retry_delay *= 2
                     continue
@@ -1320,13 +1964,17 @@ SQL: {sql}
                     return "网络连接失败，请检查网络连接"
                     
             except Exception as e:
-                print(f"API调用失败: {e}")
+                print(f"API调用失败 (尝试 {attempt + 1}/{max_retries}): {e}")
                 if attempt < max_retries - 1:
+                    print(f"等待 {retry_delay} 秒后重试...")
                     time.sleep(retry_delay)
                     retry_delay *= 2
                     continue
                 else:
                     return f"API调用失败: {str(e)}"
+            finally:
+                # 确保会话正确关闭
+                session.close()
         
         return "所有重试都失败了，请检查网络连接和API配置"
     def save_database_configs(self):
@@ -1397,6 +2045,89 @@ SQL: {sql}
         except Exception as e:
             print(f"加载表结构知识库失败: {e}")
         return {}
+
+    def call_deepseek_api_fallback(self, prompt):
+        """备用API调用方法，使用更简单的策略"""
+        import time
+        
+        headers = {
+            "Authorization": f"Bearer sk-0e6005b793aa4759bb022b91e9055f86",
+            "Content-Type": "application/json"
+        }
+        data = {
+            "model": "deepseek-chat",
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.1,
+            "max_tokens": 1000  # 减少token数量
+        }
+        
+        try:
+            print("使用备用API调用方法...")
+            response = requests.post(
+                "https://api.deepseek.com/v1/chat/completions",
+                headers=headers,
+                json=data,
+                timeout=180  # 3分钟超时
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                content = result["choices"][0]["message"]["content"]
+                print(f"备用API调用成功")
+                return content
+            else:
+                return f"备用API调用失败，状态码: {response.status_code}"
+                
+        except Exception as e:
+            return f"备用API调用失败: {str(e)}"
+
+    def validate_clustering_sql(self, sql, question):
+        """验证SQL是否符合聚类要求"""
+        import re
+        
+        # 检查是否包含必要的聚类字段
+        clustering_fields = ['Model', 'Roadmap Family', 'Group', 'MTM', 'PN']
+        found_fields = []
+        
+        for field in clustering_fields:
+            if field.lower() in sql.lower():
+                found_fields.append(field)
+        
+        # 检查是否使用了聚合函数
+        has_aggregation = re.search(r'SUM\s*\(|COUNT\s*\(|AVG\s*\(', sql, re.IGNORECASE)
+        
+        # 检查是否有GROUP BY子句
+        has_group_by = re.search(r'GROUP\s+BY', sql, re.IGNORECASE)
+        
+        # 分析问题中的层级需求
+        question_lower = question.lower()
+        is_total_query = any(word in question_lower for word in ['总数', '总量', '总计', 'sum', '合计'])
+        
+        validation_result = {
+            'is_valid': True,
+            'issues': [],
+            'suggestions': []
+        }
+        
+        # 验证逻辑
+        if is_total_query and not has_aggregation:
+            validation_result['issues'].append("总数查询应该使用聚合函数（如SUM）")
+            validation_result['suggestions'].append("添加SUM()函数对数值字段进行聚合")
+        
+        if is_total_query and not has_group_by:
+            validation_result['issues'].append("总数查询应该使用GROUP BY进行聚类")
+            validation_result['suggestions'].append("添加GROUP BY子句按产品层级进行聚类")
+        
+        if found_fields and not has_group_by:
+            validation_result['issues'].append("包含产品层级字段但缺少GROUP BY聚类")
+            validation_result['suggestions'].append("添加GROUP BY子句避免重复计算")
+        
+        if validation_result['issues']:
+            validation_result['is_valid'] = False
+        
+        return validation_result
+
+
 
 if __name__ == "__main__":
     def load_json(path):

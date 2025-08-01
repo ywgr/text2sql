@@ -12,5 +12,19 @@
       "trust_server_certificate": "yes"
     },
     "active": true
+  },
+  "mssql_1": {
+    "name": "FF_IDSS_Data_CON_BAK",
+    "type": "mssql",
+    "config": {
+      "server": "10.97.34.39",
+      "database": "FF_IDSS_Data_CON_BAK",
+      "username": "AI_User",
+      "password": "D!O$LYHSVNSL",
+      "driver": "ODBC Driver 18 for SQL Server",
+      "encrypt": "no",
+      "trust_server_certificate": "yes"
+    },
+    "active": true
   }
 }

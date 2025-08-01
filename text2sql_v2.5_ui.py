@@ -6,6 +6,9 @@ from text2sql_2_5_query import Text2SQLQueryEngine, DatabaseManager, VannaWrappe
 import re
 import time
 import plotly.express as px
+import plotly.graph_objects as go
+import warnings
+warnings.filterwarnings('ignore')
 # 这里粘贴/导入V2.4的各show_xxx_page_v23函数
 # ...（请将show_database_management_page_v23、show_table_management_page_v23等函数粘贴到此处）
 
@@ -16,25 +19,33 @@ def load_json(path):
     except Exception:
         return {}
 
+def save_json(data, path):
+    try:
+        with open(path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        return True
+    except Exception:
+        return False
+
 def show_sql_query_page_v25(system):
     st.header("智能SQL查询 V2.5 (2.5_query内核)")
     
     # 网络状态检查
-    col_status, col_help = st.columns([1, 2])
-    with col_status:
-        if st.button("检查网络连接", key="check_network"):
+    def check_network_status():
+        try:
             import requests
-            try:
-                response = requests.get("https://api.deepseek.com", timeout=5)
-                if response.status_code == 200:
-                    st.success("✅ 网络连接正常")
-                else:
-                    st.warning("⚠️ 网络连接异常")
-            except:
-                st.error("❌ 网络连接失败")
+            response = requests.get("https://api.deepseek.com", timeout=5)
+            return True, "网络连接正常"
+        except Exception as e:
+            return False, f"网络连接异常: {str(e)}"
     
-    with col_help:
-        st.info("💡 如果遇到网络超时，请检查网络连接或稍后重试")
+    # 显示网络状态
+    network_ok, network_msg = check_network_status()
+    if network_ok:
+        st.success("🌐 " + network_msg)
+    else:
+        st.warning("⚠️ " + network_msg)
+        st.info("💡 如果遇到API调用失败，请检查网络连接或稍后重试")
     
     col1, col2 = st.columns([2, 1])
     with col1:
@@ -76,7 +87,19 @@ def show_sql_query_page_v25(system):
                             break
                     
                     prompt = system.generate_prompt(question, target_table)
-                    sql, analysis = system.generate_sql(prompt)
+                    
+                    # 增加错误处理
+                    try:
+                        sql, analysis = system.generate_sql(prompt)
+                        
+                        # 应用产品层级映射（处理跨表维度不匹配）
+                        if sql and not sql.startswith("API调用失败") and not sql.startswith("网络连接"):
+                            sql = system.apply_product_hierarchy_mapping(question, sql, db_config)
+                            
+                    except Exception as e:
+                        st.error(f"SQL生成过程中发生错误: {str(e)}")
+                        st.info("💡 建议：请检查网络连接，或稍后重试")
+                        return
                     
                     if sql and not sql.startswith("API调用失败") and not sql.startswith("网络连接"):
                         st.success("SQL生成成功")
@@ -84,7 +107,11 @@ def show_sql_query_page_v25(system):
                         
                         # SQL校验
                         with st.spinner("正在校验SQL..."):
-                            validated_sql, validation_analysis = system.llm_validate_sql(sql, prompt)
+                            try:
+                                validated_sql, validation_analysis = system.llm_validate_sql(sql, prompt)
+                            except Exception as e:
+                                st.warning(f"SQL校验过程中发生错误: {str(e)}")
+                                validated_sql, validation_analysis = sql, "校验失败"
                             
                             if validated_sql and not validated_sql.startswith("API调用失败"):
                                 # 检查校验后的SQL是否与原始SQL不同
@@ -98,7 +125,12 @@ def show_sql_query_page_v25(system):
                                 st.warning("SQL校验失败，使用原始SQL")
                         
                         # 本地校验
-                        local_check_result = system.enhanced_local_field_check(sql)
+                        try:
+                            local_check_result = system.enhanced_local_field_check(sql)
+                        except Exception as e:
+                            st.warning(f"本地校验过程中发生错误: {str(e)}")
+                            local_check_result = "本地校验失败"
+                            
                         if "发现问题" in local_check_result:
                             st.warning("本地校验发现问题")
                             st.text_area("本地校验结果:", local_check_result, height=100, disabled=True)
@@ -106,7 +138,11 @@ def show_sql_query_page_v25(system):
                             # 新增：LLM自动修正本地校验发现的问题
                             st.info("正在使用LLM修正本地校验发现的问题...")
                             with st.spinner("LLM正在修正SQL..."):
-                                fixed_sql, fix_analysis = system.llm_fix_sql(sql, local_check_result, question)
+                                try:
+                                    fixed_sql, fix_analysis = system.llm_fix_sql(sql, local_check_result, question)
+                                except Exception as e:
+                                    st.warning(f"LLM修正过程中发生错误: {str(e)}")
+                                    fixed_sql, fix_analysis = sql, "修正失败"
                                 
                                 if fixed_sql != sql:
                                     st.success("✅ SQL已自动修正")
@@ -132,7 +168,11 @@ def show_sql_query_page_v25(system):
                         
                         # 执行SQL
                         with st.spinner("正在执行SQL..."):
-                            success, df, exec_message = system.execute_sql(sql, db_config)
+                            try:
+                                success, df, exec_message = system.execute_sql(sql, db_config)
+                            except Exception as e:
+                                st.error(f"SQL执行过程中发生错误: {str(e)}")
+                                return
                             
                             if success:
                                 st.success("SQL执行成功")
@@ -144,29 +184,119 @@ def show_sql_query_page_v25(system):
                                 # 可视化
                                 if not df.empty:
                                     st.subheader("数据可视化")
-                                    def auto_choose_axes(df):
-                                        numeric_cols = df.select_dtypes(include='number').columns.tolist()
-                                        category_cols = df.select_dtypes(exclude='number').columns.tolist()
-                                        preferred_x = ['产品', '型号', '日期', '分组', '名称', 'PN', 'Roadmap Family', 'Group', 'Model']
-                                        x_axis = None
-                                        for col in preferred_x:
-                                            if col in df.columns:
-                                                x_axis = col
-                                                break
-                                        if not x_axis and category_cols:
-                                            x_axis = category_cols[0]
-                                        y_axis = numeric_cols[0] if numeric_cols else None
-                                        return x_axis, y_axis
-                                    x_axis, y_axis = auto_choose_axes(df)
-                                    st.write("默认自动选择X/Y轴，您也可以手动切换：")
-                                    x_axis = st.selectbox("选择X轴", df.columns, index=df.columns.get_loc(x_axis) if x_axis in df.columns else 0)
-                                    y_axis = st.selectbox("选择Y轴", df.columns, index=df.columns.get_loc(y_axis) if y_axis in df.columns else 1)
-                                    import plotly.express as px
-                                    if x_axis and y_axis:
-                                        fig = px.bar(df, x=x_axis, y=y_axis, title=f"{x_axis} vs {y_axis}")
+                                    
+                                    # 智能识别字段类型
+                                    categorical_cols = []
+                                    numeric_cols = []
+                                    doi_cols = []
+                                    doi_columns = []  # 添加这个变量以确保兼容性
+                                    
+                                    for col in df.columns:
+                                        if df[col].dtype == 'object' or col in ['Roadmap Family', 'MTM', '产品', '型号', 'Group']:
+                                            categorical_cols.append(col)
+                                        elif df[col].dtype != 'object':
+                                            if 'DOI' in col or '周转天' in col:
+                                                doi_cols.append(col)
+                                                doi_columns.append(col)  # 同时填充两个变量
+                                            else:
+                                                numeric_cols.append(col)
+                                    
+                                    # 智能选择X轴（优先选择分类字段）
+                                    if categorical_cols:
+                                        x_axis_col = categorical_cols[0]  # 优先使用第一个分类字段
+                                    else:
+                                        # 如果没有分类字段，尝试从问题中提取指标作为X轴
+                                        import re
+                                        indicators = re.findall(r'全链库存|周转|预测|备货|PO', question)
+                                        if indicators and len(df.columns) > 1:
+                                            x_axis_col = df.columns[1]  # 使用第二列作为X轴
+                                        else:
+                                            x_axis_col = df.columns[0]
+                                    
+                                    # 数值字段（Y轴候选）
+                                    value_columns_no_doi = [col for col in numeric_cols if col not in doi_cols]
+                                    
+                                    # 用户多选库存类指标（柱状图）
+                                    selected_bars = st.multiselect(
+                                        "请选择库存类指标（柱状图，可多选）",
+                                        value_columns_no_doi,
+                                        default=value_columns_no_doi[:1] if value_columns_no_doi else []
+                                    )
+                                    
+                                    # 用户单选DOI类指标（折线图）
+                                    selected_line = st.selectbox("请选择DOI类指标（折线图，单选）", doi_cols) if doi_cols else None
+                                    
+                                    # 生成图表标题
+                                    def generate_chart_title(question, df):
+                                        import re
+                                        # 提取定语（如510S、GEEK等）
+                                        qualifier_match = re.search(r'([A-Z0-9]+[A-Z]|[一-龯]+)', question)
+                                        qualifier = qualifier_match.group(1) if qualifier_match else ""
+                                        
+                                        # 提取时间信息
+                                        time_match = re.search(r'(\d{4}年\d{1,2}月|\d{4}年|\d{1,2}月)', question)
+                                        time_info = time_match.group(1) if time_match else ""
+                                        
+                                        # 如果没有时间信息，尝试从SQL中提取
+                                        if not time_info:
+                                            # 检查是否有"本月"、"7月"等时间信息
+                                            month_match = re.search(r'(本月|7月|8月|9月|10月|11月|12月)', question)
+                                            if month_match:
+                                                time_info = "2025年" + month_match.group(1)
+                                            else:
+                                                time_info = "2025年7月"  # 默认时间
+                                        
+                                        if qualifier and time_info:
+                                            return f"{time_info} {qualifier}"
+                                        elif qualifier:
+                                            return f"{qualifier} 数据对比"
+                                        elif time_info:
+                                            return f"{time_info} 数据对比"
+                                        else:
+                                            return f"{question} - 查询结果"
+                                    
+                                    chart_title = generate_chart_title(question, df)
+                                    
+                                    import plotly.graph_objects as go
+                                    if selected_bars and selected_line:
+                                        fig = go.Figure()
+                                        # 柱状图
+                                        for bar in selected_bars:
+                                            fig.add_trace(go.Bar(
+                                                x=df[x_axis_col],
+                                                y=df[bar],
+                                                name=bar,
+                                                yaxis='y1'
+                                            ))
+                                        # 折线图
+                                        fig.add_trace(go.Scatter(
+                                            x=df[x_axis_col],
+                                            y=df[selected_line],
+                                            name=selected_line,
+                                            yaxis='y2',
+                                            mode='lines+markers',
+                                            line=dict(width=3, color='red')
+                                        ))
+                                        fig.update_layout(
+                                            title=chart_title,
+                                            xaxis=dict(title=x_axis_col),
+                                            yaxis=dict(title='数值指标', side='left'),
+                                            yaxis2=dict(title='DOI/周转天数', overlaying='y', side='right'),
+                                            legend=dict(x=0.01, y=0.99)
+                                        )
+                                        st.plotly_chart(fig, use_container_width=True)
+                                    elif selected_bars:
+                                        fig = go.Figure()
+                                        for bar in selected_bars:
+                                            fig.add_trace(go.Bar(
+                                                x=df[x_axis_col],
+                                                y=df[bar],
+                                                name=bar
+                                            ))
+                                        fig.update_layout(title=chart_title, xaxis=dict(title=x_axis_col), yaxis=dict(title='数值'))
                                         st.plotly_chart(fig, use_container_width=True)
                                     else:
-                                        st.info("无法自动识别合适的X/Y轴，请检查数据结构。")
+                                        st.info("请至少选择一个库存类指标。")
                                 
                                 # 下载功能
                                 csv = df.to_csv(index=False)
@@ -184,6 +314,8 @@ def show_sql_query_page_v25(system):
                                     if st.button("👍 正确", key="correct_btn"):
                                         system.record_historical_qa(question, sql)
                                         st.success("已存入历史知识库，后续将参考提升准确率")
+                                        # 强制刷新页面以显示更新
+                                        st.rerun()
                                 with col2_eval:
                                     if st.button("👎 错误", key="wrong_btn"):
                                         st.info("感谢反馈，已忽略本次SQL")
@@ -218,11 +350,45 @@ def show_sql_query_page_v25(system):
         # 历史问答对查看功能
         if system.historical_qa:
             st.subheader("最近的历史问答对")
-            for i, qa in enumerate(system.historical_qa[-5:]):  # 显示最近5条
-                with st.expander(f"Q{i+1}: {qa['question'][:50]}...", expanded=False):
-                    st.write(f"**问题:** {qa['question']}")
-                    st.code(qa['sql'], language="sql")
-                    st.caption(f"时间: {qa['timestamp']}")
+            
+            # 添加删除功能
+            col_qa_header1, col_qa_header2 = st.columns([3, 1])
+            with col_qa_header1:
+                st.write(f"共 {len(system.historical_qa)} 条记录")
+            with col_qa_header2:
+                if st.button("🗑️ 清空所有", key="clear_all_qa"):
+                    if st.session_state.get("confirm_clear_qa", False):
+                        system.historical_qa = []
+                        if save_json(system.historical_qa, 'historical_qa.json'):
+                            st.success("✅ 已清空所有历史问答对")
+                            st.rerun()
+                    else:
+                        st.session_state["confirm_clear_qa"] = True
+                        st.warning("⚠️ 再次点击确认清空")
+            
+            # 显示历史问答对，支持删除单个
+            for i, qa in enumerate(system.historical_qa[-10:]):  # 显示最近10条
+                col_qa1, col_qa2 = st.columns([4, 1])
+                with col_qa1:
+                    with st.expander(f"Q{i+1}: {qa['question'][:50]}...", expanded=False):
+                        st.write(f"**问题:** {qa['question']}")
+                        st.code(qa['sql'], language="sql")
+                        st.caption(f"时间: {qa.get('timestamp', '未知')}")
+                with col_qa2:
+                    if st.button(f"删除", key=f"delete_qa_{i}"):
+                        if st.session_state.get(f"confirm_delete_qa_{i}", False):
+                            # 删除指定索引的记录
+                            actual_index = len(system.historical_qa) - 10 + i
+                            if 0 <= actual_index < len(system.historical_qa):
+                                del system.historical_qa[actual_index]
+                                if save_json(system.historical_qa, 'historical_qa.json'):
+                                    st.success("✅ 已删除该记录")
+                                    st.rerun()
+                        else:
+                            st.session_state[f"confirm_delete_qa_{i}"] = True
+                            st.warning("⚠️ 再次点击确认删除")
+        else:
+            st.info("暂无历史问答对")
         
         # 新增：Vanna训练功能
         st.subheader("Vanna训练")
@@ -503,7 +669,7 @@ def show_sql_query_page_v23(system):
             with col_feedback1:
                 if st.button("👍 正确"):
                     if st.session_state.get('current_question_v23') and st.session_state.get('current_sql_v23'):
-                        system.add_historical_qa(st.session_state.current_question_v23, st.session_state.current_sql_v23)
+                        system.record_historical_qa(st.session_state.current_question_v23, st.session_state.current_sql_v23)
                         st.success("感谢评价！已将此优质问答存入历史知识库。")
                         st.balloons()
                     else:
@@ -917,6 +1083,62 @@ def show_table_management_page_v23(system):
             if search_term:
                 st.info(f"筛选结果: {len(filtered_tables)} 个表")
             
+            # 添加滚动条容器
+            st.subheader("数据库表列表")
+            with st.container():
+                # 限制初始显示的表数量
+                display_limit = 10
+                show_more = st.button("显示更多表", key="show_more_tables")
+                
+                if show_more or len(filtered_tables) <= display_limit:
+                    tables_to_show = filtered_tables
+                else:
+                    tables_to_show = filtered_tables[:display_limit]
+                
+                # 创建可滚动的表列表
+                table_container = st.container()
+                with table_container:
+                    for i, table in enumerate(tables_to_show):
+                        with st.expander(f"📋 {table}", expanded=False):
+                            # 表结构信息
+                            schema = system.db_manager.get_table_schema(db_config["type"], db_config["config"], table)
+                            if schema:
+                                st.write(f"**字段数**: {len(schema['columns'])}")
+                                st.write(f"**字段列表**: {', '.join(schema['columns'][:5])}{'...' if len(schema['columns']) > 5 else ''}")
+                                
+                                # 导入状态检查
+                                if table in system.table_knowledge:
+                                    st.success("✅ 已在知识库")
+                                    if st.button(f"更新结构", key=f"update_db_{table}"):
+                                        system.table_knowledge[table]["columns"] = schema["columns"]
+                                        system.table_knowledge[table]["column_info"] = schema["column_info"]
+                                        system.table_knowledge[table]["update_time"] = time.strftime("%Y-%m-%d %H:%M:%S")
+                                        system.save_table_knowledge()
+                                        st.success(f"表 {table} 结构已更新")
+                                        st.rerun()
+                                else:
+                                    st.warning("❌ 未导入知识库")
+                                    if st.button(f"导入到知识库", key=f"import_db_{table}"):
+                                        system.table_knowledge[table] = {
+                                            "columns": schema["columns"],
+                                            "column_info": schema["column_info"],
+                                            "comment": f"从{db_config['name']}自动导入",
+                                            "relationships": [],
+                                            "business_fields": {},
+                                            "import_time": time.strftime("%Y-%m-%d %H:%M:%S"),
+                                            "database": db_config["config"].get("database") or db_config["config"].get("db") or "",
+                                            "schema": "dbo",
+                                        }
+                                        system.save_table_knowledge()
+                                        st.success(f"表 {table} 已导入知识库")
+                                        st.rerun()
+                            else:
+                                st.error("❌ 无法获取表结构")
+                
+                # 显示更多按钮
+                if len(filtered_tables) > display_limit and not show_more:
+                    st.info(f"显示 {len(tables_to_show)} / {len(filtered_tables)} 个表")
+            
             # 批量操作
             st.subheader("批量操作")
             col_batch1, col_batch2, col_batch3 = st.columns(3)
@@ -1002,7 +1224,18 @@ def show_table_management_page_v23(system):
                         st.warning("再次点击确认清空")
             
             # 显示表详情（默认全部收起）
-            for table in tables:
+            # 限制显示数量，提高效率
+            display_count = 10
+            total_tables = len(filtered_tables)
+            
+            if total_tables > display_count:
+                st.info(f"显示前 {display_count} 个表（共 {total_tables} 个表）")
+                # 添加滚动查看更多功能
+                if st.button("显示更多表"):
+                    display_count = min(display_count + 10, total_tables)
+                    st.rerun()
+            
+            for i, table in enumerate(filtered_tables[:display_count]):
                 with st.expander(f"📊 {table}", expanded=False):
                     # 获取表结构
                     schema = system.db_manager.get_table_schema(
@@ -1024,7 +1257,7 @@ def show_table_management_page_v23(system):
                         with col_action:
                             # 导入到知识库
                             if table not in system.table_knowledge:
-                                if st.button(f"导入知识库", key=f"import_{table}"):
+                                if st.button(f"导入知识库", key=f"import_kb_{table}"):
                                     system.table_knowledge[table] = {
                                         "columns": schema["columns"],
                                         "column_info": schema["column_info"],
@@ -1040,7 +1273,7 @@ def show_table_management_page_v23(system):
                                     st.rerun()
                             else:
                                 st.success("✅ 已在知识库")
-                                if st.button(f"更新结构", key=f"update_{table}"):
+                                if st.button(f"更新结构", key=f"update_kb_{table}"):
                                     system.table_knowledge[table]["columns"] = schema["columns"]
                                     system.table_knowledge[table]["column_info"] = schema["column_info"]
                                     system.table_knowledge[table]["update_time"] = time.strftime("%Y-%m-%d %H:%M:%S")
@@ -1054,8 +1287,18 @@ def show_table_management_page_v23(system):
         st.subheader("知识库表管理")
         
         if system.table_knowledge:
-            for table_name, table_info in system.table_knowledge.items():
-                with st.expander(f"🧠 {table_name} (知识库)"):
+            # 添加调试信息
+            st.info(f"知识库中共有 {len(system.table_knowledge)} 个表")
+            
+            # 显示所有表名（调试用）
+            table_names = list(system.table_knowledge.keys())
+            st.write(f"**表列表**: {', '.join(table_names)}")
+            
+            # 按表名排序显示
+            sorted_tables = sorted(system.table_knowledge.items(), key=lambda x: x[0])
+            
+            for table_name, table_info in sorted_tables:
+                with st.expander(f"🧠 {table_name} (知识库)", expanded=False):
                     col_kb1, col_kb2 = st.columns([2, 1])
                     
                     with col_kb1:
@@ -1080,19 +1323,7 @@ def show_table_management_page_v23(system):
                             system.table_knowledge[table_name]["schema"] = new_schema
                             system.table_knowledge[table_name]["comment"] = new_comment
                             system.save_table_knowledge()
-                            
-                            # V2.3 增强：强制重新加载知识库并清空缓存
-                            if hasattr(system, "sql_cache"):
-                                system.sql_cache.clear()
-                            if hasattr(system, "table_knowledge"):
-                                system.table_knowledge.clear()
-                            if hasattr(system, "product_knowledge"):
-                                system.product_knowledge.clear()
-                            if hasattr(system, "business_rules"):
-                                system.business_rules.clear()
-                            if hasattr(system, "historical_qa"):
-                                system.historical_qa.clear()
-                            st.success("V2.5系统缓存和知识库已清空")
+                            st.success("元数据已保存")
                             st.rerun()
                         
                         # 字段备注编辑
@@ -1170,11 +1401,28 @@ def show_table_management_page_v23(system):
             df_display = df_relationships[["表1", "字段1", "表2", "字段2", "类型", "置信度", "描述"]]
             st.dataframe(df_display, use_container_width=True)
             
-            # 删除关联关系（单条删除按钮）
+            # 删除关联关系（改进布局：删除按钮和关系信息在同一行）
+            st.write("**删除关联关系:**")
             for idx, rel in enumerate(all_relationships):
-                col_del = st.columns(8)[7]
-                with col_del:
-                    if st.button(f"删除", key=f"del_rel_{rel['key']}"):
+                # 使用列布局，将删除按钮和关系信息放在同一行
+                col1, col2, col3, col4, col5, col6, col7, col8 = st.columns([2, 1, 2, 1, 1, 1, 3, 1])
+                
+                with col1:
+                    st.write(f"**{rel['表1']}**")
+                with col2:
+                    st.write(f"→ {rel['字段1']}")
+                with col3:
+                    st.write(f"**{rel['表2']}**")
+                with col4:
+                    st.write(f"→ {rel['字段2']}")
+                with col5:
+                    st.write(f"({rel['类型']})")
+                with col6:
+                    st.write(f"{rel['置信度']:.1f}")
+                with col7:
+                    st.write(f"*{rel['描述']}*")
+                with col8:
+                    if st.button(f"删除", key=f"del_rel_{rel['key']}", type="secondary"):
                         # 删除该关联关系（从所有涉及表中删除）
                         for t in [rel["表1"], rel["表2"]]:
                             if t in system.table_knowledge:
@@ -1184,13 +1432,16 @@ def show_table_management_page_v23(system):
                                         r.get("table1") == rel["表1"] and
                                         r.get("table2") == rel["表2"] and
                                         r.get("field1") == rel["字段1"] and
-                                        r.get("field2") == rel["字段2"] and
-                                        (r.get("type") == ("manual" if rel["类型"] == "手工" else "auto"))
+                                        r.get("field2") == rel["字段2"]
                                     )
                                 ]
+                        
                         system.save_table_knowledge()
-                        st.success("已删除该表关联！")
+                        st.success(f"已删除关联关系: {rel['表1']}.{rel['字段1']} ↔ {rel['表2']}.{rel['字段2']}")
                         st.rerun()
+                
+                # 添加分隔线
+                st.divider()
             # 删除全部
             if st.button("清空所有关联"):
                 if st.session_state.get("confirm_clear_rel", False):
@@ -1873,9 +2124,9 @@ def show_business_rules_page_v23(system):
             col_term1, col_term2, col_term3 = st.columns([2, 2, 1])
             
             with col_term1:
-                business_term = st.text_input("业务术语:", placeholder="例如: 预测")
+                business_term = st.text_input("业务术语:", placeholder="例如: 消台")
             with col_term2:
-                db_term = st.text_input("数据库术语:", placeholder="例如: student")
+                db_term = st.text_input("数据库术语:", placeholder="例如: model")
             with col_term3:
                 term_type = st.selectbox("类型:", ["实体", "字段", "条件", "时间"])
             
@@ -1887,37 +2138,41 @@ def show_business_rules_page_v23(system):
                 help="选择特定表时，此映射只对该表生效；选择全部表时，对所有表生效"
             )
             
+            # 添加条件类型和条件值
+            col_condition1, col_condition2 = st.columns(2)
+            with col_condition1:
+                condition_type = st.selectbox("条件类型:", ["等于", "包含", "正则"], help="指定字段的匹配条件")
+            with col_condition2:
+                condition_value = st.text_input("条件值:", placeholder="例如: ttl", help="字段需要匹配的值")
+            
             term_description = st.text_input("描述:", placeholder="术语映射的说明")
             
             if st.form_submit_button("添加映射"):
                 if business_term and db_term:
+                    # 生成规则键（包含表信息）
+                    if table_restriction != "全部表":
+                        rule_key = f"{table_restriction}_{business_term}"
+                    else:
+                        rule_key = business_term
+                    
                     # 检查是否已存在
-                    if business_term in system.business_rules:
-                        st.warning(f"术语 '{business_term}' 已存在，将覆盖原有映射")
+                    if rule_key in system.business_rules:
+                        st.warning(f"术语 '{business_term}' 在表 '{table_restriction}' 中已存在，将覆盖原有映射")
                     
-                    system.business_rules[business_term] = db_term
-                    
-                    # 保存额外信息到元数据
-                    if not hasattr(system, 'business_rules_meta'):
-                        system.business_rules_meta = {}
-                    
-                    system.business_rules_meta[business_term] = {
+                    # 保存业务规则
+                    system.business_rules[rule_key] = {
+                        "business_term": business_term,
+                        "db_field": db_term,
+                        "condition_type": condition_type,
+                        "condition_value": condition_value,
+                        "table": table_restriction if table_restriction != "全部表" else None,
                         "type": term_type,
                         "description": term_description,
-                        "table_restriction": table_restriction if table_restriction != "全部表" else None,
-                        "create_time": time.strftime("%Y-%m-%d %H:%M:%S"),
-                        "usage_count": 0
+                        "create_time": time.strftime("%Y-%m-%d %H:%M:%S")
                     }
                     
                     if system.save_business_rules():
-                        # 保存元数据
-                        try:
-                            with open("business_rules_meta.json", 'w', encoding='utf-8') as f:
-                                json.dump(system.business_rules_meta, f, ensure_ascii=False, indent=2)
-                        except:
-                            pass
-                        
-                        st.success(f"已添加映射: {business_term} → {db_term}")
+                        st.success(f"已添加映射: {business_term} → {db_term} (表: {table_restriction})")
                         st.rerun()
                     else:
                         st.error("保存失败")
@@ -1933,30 +2188,105 @@ def show_business_rules_page_v23(system):
             uploaded_file = st.file_uploader("上传JSON文件", type=['json'])
             if uploaded_file is not None:
                 try:
-                    new_rules = json.load(uploaded_file)
+                    # 读取文件内容
+                    file_content = uploaded_file.read().decode('utf-8')
+                    new_rules = json.loads(file_content)
+                    
+                    # 检查JSON格式并转换为正确的格式
+                    if isinstance(new_rules, list):
+                        # 如果是数组格式，转换为对象格式
+                        st.warning("检测到数组格式的JSON，正在转换为对象格式...")
+                        converted_rules = {}
+                        for i, rule in enumerate(new_rules):
+                            if isinstance(rule, dict):
+                                # 如果有business_term字段，使用它作为键
+                                if 'business_term' in rule:
+                                    key = rule['business_term']
+                                    if rule.get('table'):
+                                        key = f"{rule['table']}_{rule['business_term']}"
+                                else:
+                                    # 否则使用索引作为键
+                                    key = f"rule_{i}"
+                                converted_rules[key] = rule
+                            else:
+                                st.error(f"数组中的第{i+1}个元素不是有效的规则对象")
+                                continue
+                        new_rules = converted_rules
+                        st.success(f"已转换 {len(converted_rules)} 条规则")
+                    
+                    elif isinstance(new_rules, dict):
+                        # 已经是对象格式，直接使用
+                        pass
+                    else:
+                        st.error("JSON文件格式不正确，请确保是对象或数组格式")
+                        return
                     
                     if st.button("预览导入规则"):
                         st.write("**将导入的规则:**")
-                        preview_df = pd.DataFrame([
-                            {"业务术语": k, "数据库术语": v} 
-                            for k, v in new_rules.items()
-                        ])
-                        st.dataframe(preview_df)
+                        if new_rules:
+                            preview_data = []
+                            for key, rule in new_rules.items():
+                                if isinstance(rule, dict):
+                                    business_term = rule.get('business_term', key)
+                                    db_field = rule.get('db_field', '')
+                                    table = rule.get('table', '全部表')
+                                    preview_data.append({
+                                        "业务术语": business_term,
+                                        "数据库字段": db_field,
+                                        "表": table,
+                                        "条件类型": rule.get('condition_type', '等于'),
+                                        "条件值": rule.get('condition_value', '')
+                                    })
+                            
+                            if preview_data:
+                                preview_df = pd.DataFrame(preview_data)
+                                st.dataframe(preview_df, use_container_width=True)
+                            else:
+                                st.warning("没有找到有效的规则数据")
+                        else:
+                            st.warning("没有规则数据")
                     
                     if st.button("确认导入规则"):
                         imported_count = 0
-                        for term, mapping in new_rules.items():
-                            if term not in system.business_rules:
-                                system.business_rules[term] = mapping
-                                imported_count += 1
+                        skipped_count = 0
                         
-                        if system.save_business_rules():
-                            st.success(f"已导入 {imported_count} 条新规则")
-                            st.rerun()
+                        for key, rule in new_rules.items():
+                            if isinstance(rule, dict):
+                                # 检查是否是新的业务规则格式
+                                if 'business_term' in rule and 'db_field' in rule:
+                                    # 新格式：直接使用
+                                    system.business_rules[key] = rule
+                                    imported_count += 1
+                                elif isinstance(rule, str):
+                                    # 旧格式：简单映射
+                                    business_term = key
+                                    db_term = rule
+                                    system.business_rules[business_term] = db_term
+                                    imported_count += 1
+                                else:
+                                    skipped_count += 1
+                                    st.warning(f"跳过无效规则: {key}")
+                            else:
+                                skipped_count += 1
+                                st.warning(f"跳过无效规则: {key}")
+                        
+                        if imported_count > 0:
+                            if system.save_business_rules():
+                                st.success(f"已导入 {imported_count} 条新规则")
+                                if skipped_count > 0:
+                                    st.info(f"跳过 {skipped_count} 条无效规则")
+                                st.rerun()
+                            else:
+                                st.error("导入失败")
                         else:
-                            st.error("导入失败")
+                            st.warning("没有导入任何规则")
+                            
+                except json.JSONDecodeError as e:
+                    st.error(f"JSON格式错误: {e}")
+                    st.info("请确保上传的是有效的JSON文件")
                 except Exception as e:
-                    st.error(f"文件格式错误: {e}")
+                    st.error(f"文件处理错误: {e}")
+                    st.info("请检查文件格式是否正确")
         
         with col_template:
             # 预设规则模板
@@ -2152,55 +2482,134 @@ def show_business_rules_page_v23(system):
                     category_rules[term] = mapping
             
             if category_rules:
-                with st.expander(f"📂 {category} ({len(category_rules)}条)"):
-                    for term, mapping in category_rules.items():
-                        col_show1, col_show2, col_show3, col_show4 = st.columns([2, 2, 1, 1])
+                st.write(f"📂 {category} ({len(category_rules)}条)")
+                for term, rule_info in category_rules.items():
+                    # 处理新的业务规则格式（字典）
+                    if isinstance(rule_info, dict):
+                        business_term = rule_info.get('business_term', term)
+                        db_field = rule_info.get('db_field', '')
+                        condition_type = rule_info.get('condition_type', '等于')
+                        condition_value = rule_info.get('condition_value', '')
+                        table_restriction = rule_info.get('table', '')
+                        rule_type = rule_info.get('type', '实体')
+                        description = rule_info.get('description', '')
+                    else:
+                        # 处理旧的业务规则格式（字符串）
+                        business_term = term
+                        db_field = rule_info
+                        condition_type = '等于'
+                        condition_value = ''
+                        table_restriction = ''
+                        rule_type = '实体'
+                        description = ''
+                    
+                    # 创建编辑表单 - 使用容器而不是expander
+                    with st.container():
+                        st.write(f"**编辑规则: {business_term}**")
+                        col_edit1, col_edit2 = st.columns(2)
                         
-                        with col_show1:
-                            new_term = st.text_input(f"术语:", value=term, key=f"term_{category}_{term}")
-                        with col_show2:
-                            new_mapping = st.text_input(f"映射:", value=mapping, key=f"mapping_{category}_{term}")
+                        with col_edit1:
+                            new_business_term = st.text_input("业务术语:", value=business_term, key=f"edit_term_{category}_{term}")
+                            new_db_field = st.text_input("数据库字段:", value=db_field, key=f"edit_field_{category}_{term}")
+                            new_condition_type = st.selectbox("条件类型:", ["等于", "包含", "正则"], index=["等于", "包含", "正则"].index(condition_type), key=f"edit_condition_type_{category}_{term}")
+                            new_condition_value = st.text_input("条件值:", value=condition_value, key=f"edit_condition_value_{category}_{term}")
                         
-                        # 添加表限制编辑
-                        available_tables = list(system.table_knowledge.keys()) if system.table_knowledge else []
-                        current_table_restriction = meta.get("table_restriction") if meta else None
-                        new_table_restriction = st.selectbox(
-                            f"表限制:", 
-                            ["全部表"] + available_tables,
-                            index=0 if current_table_restriction is None else (available_tables.index(current_table_restriction) + 1) if current_table_restriction in available_tables else 0,
-                            key=f"table_restriction_{category}_{term}"
-                        )
+                        with col_edit2:
+                            available_tables = list(system.table_knowledge.keys()) if system.table_knowledge else []
+                            table_options = ["全部表"] + available_tables
+                            current_table_index = 0 if not table_restriction else (table_options.index(table_restriction) if table_restriction in table_options else 0)
+                            new_table_restriction = st.selectbox("表限制:", table_options, index=current_table_index, key=f"edit_table_{category}_{term}")
+                            new_rule_type = st.selectbox("规则类型:", ["实体", "字段", "条件", "时间"], index=["实体", "字段", "条件", "时间"].index(rule_type), key=f"edit_type_{category}_{term}")
+                            new_description = st.text_input("描述:", value=description, key=f"edit_desc_{category}_{term}")
                         
-                        with col_show3:
-                            if st.button("更新", key=f"update_{category}_{term}"):
-                                if new_term != term:
-                                    del system.business_rules[term]
-                                    if term in system.business_rules_meta:
-                                        system.business_rules_meta[new_term] = system.business_rules_meta.pop(term)
+                        col_btn1, col_btn2, col_btn3 = st.columns(3)
+                        
+                        with col_btn1:
+                            if st.button("保存更改", key=f"save_{category}_{term}"):
+                                # 创建新的规则对象
+                                new_rule = {
+                                    "business_term": new_business_term,
+                                    "db_field": new_db_field,
+                                    "condition_type": new_condition_type,
+                                    "condition_value": new_condition_value,
+                                    "table": new_table_restriction if new_table_restriction != "全部表" else None,
+                                    "type": new_rule_type,
+                                    "description": new_description,
+                                    "update_time": time.strftime("%Y-%m-%d %H:%M:%S")
+                                }
                                 
-                                system.business_rules[new_term] = new_mapping
+                                # 如果术语改变了，需要更新键
+                                if new_business_term != business_term:
+                                    del system.business_rules[term]
+                                    new_key = f"{new_table_restriction}_{new_business_term}" if new_table_restriction != "全部表" else new_business_term
+                                else:
+                                    new_key = term
+                                
+                                system.business_rules[new_key] = new_rule
                                 
                                 # 更新元数据
-                                if new_term in system.business_rules_meta:
-                                    system.business_rules_meta[new_term]["update_time"] = time.strftime("%Y-%m-%d %H:%M:%S")
-                                    system.business_rules_meta[new_term]["table_restriction"] = new_table_restriction if new_table_restriction != "全部表" else None
+                                if new_key in system.business_rules_meta:
+                                    system.business_rules_meta[new_key].update({
+                                        "type": new_rule_type,
+                                        "table_restriction": new_table_restriction if new_table_restriction != "全部表" else None,
+                                        "description": new_description,
+                                        "update_time": time.strftime("%Y-%m-%d %H:%M:%S")
+                                    })
                                 
-                                system.save_business_rules()
-                                st.success("已更新")
-                                st.rerun()
+                                if system.save_business_rules():
+                                    st.success("✅ 规则已更新")
+                                    st.rerun()
+                                else:
+                                    st.error("❌ 保存失败")
                         
-                        with col_show4:
-                            if st.button("删除", key=f"del_{category}_{term}"):
-                                if st.session_state.get(f"confirm_del_{term}", False):
+                        with col_btn2:
+                            if st.button("删除规则", key=f"delete_{category}_{term}"):
+                                if st.session_state.get(f"confirm_delete_{term}", False):
                                     del system.business_rules[term]
                                     if term in system.business_rules_meta:
                                         del system.business_rules_meta[term]
-                                    system.save_business_rules()
-                                    st.success("已删除")
+                                    if system.save_business_rules():
+                                        st.success("✅ 规则已删除")
+                                        st.rerun()
+                                    else:
+                                        st.error("❌ 删除失败")
+                                else:
+                                    st.session_state[f"confirm_delete_{term}"] = True
+                                    st.warning("⚠️ 再次点击确认删除")
+                        
+                        with col_btn3:
+                            if st.button("复制规则", key=f"copy_{category}_{term}"):
+                                # 创建副本
+                                copy_key = f"{term}_copy"
+                                system.business_rules[copy_key] = rule_info.copy() if isinstance(rule_info, dict) else rule_info
+                                if system.save_business_rules():
+                                    st.success("✅ 规则已复制")
                                     st.rerun()
                                 else:
-                                    st.session_state[f"confirm_del_{term}"] = True
-                                    st.warning("再次点击确认删除")
+                                    st.error("❌ 复制失败")
+                        
+                        # 显示规则预览
+                        col_preview1, col_preview2, col_preview3 = st.columns([3, 2, 1])
+                        
+                        with col_preview1:
+                            if isinstance(rule_info, dict):
+                                preview_text = f"{rule_info.get('business_term', '')} → {rule_info.get('db_field', '')}"
+                                if rule_info.get('condition_value'):
+                                    preview_text += f" ({rule_info.get('condition_value', '')})"
+                            else:
+                                preview_text = f"{term} → {rule_info}"
+                            st.text(preview_text)
+                        
+                        with col_preview2:
+                            if isinstance(rule_info, dict):
+                                table_info = rule_info.get('table', '全部表')
+                                type_info = rule_info.get('type', '实体')
+                                st.caption(f"表: {table_info} | 类型: {type_info}")
+                            else:
+                                st.caption("旧格式规则")
+                        
+                        with col_preview3:
+                            st.caption(f"ID: {term[:10]}...")
                         
                         # 显示元数据
                         meta = system.business_rules_meta.get(term, {})
@@ -2240,20 +2649,132 @@ def show_business_rules_page_v23(system):
         
         if other_rules:
             with st.expander(f"📂 其他规则 ({len(other_rules)}条)"):
-                for term, mapping in other_rules.items():
-                    col_other1, col_other2, col_other3 = st.columns([2, 2, 1])
+                for term, rule_info in other_rules.items():
+                    # 处理新的业务规则格式（字典）
+                    if isinstance(rule_info, dict):
+                        business_term = rule_info.get('business_term', term)
+                        db_field = rule_info.get('db_field', '')
+                        condition_type = rule_info.get('condition_type', '等于')
+                        condition_value = rule_info.get('condition_value', '')
+                        table_restriction = rule_info.get('table', '')
+                        rule_type = rule_info.get('type', '实体')
+                        description = rule_info.get('description', '')
+                    else:
+                        # 处理旧的业务规则格式（字符串）
+                        business_term = term
+                        db_field = rule_info
+                        condition_type = '等于'
+                        condition_value = ''
+                        table_restriction = ''
+                        rule_type = '实体'
+                        description = ''
                     
-                    with col_other1:
-                        st.text_input(f"术语:", value=term, key=f"other_term_{hash(term)}", disabled=True)
-                    with col_other2:
-                        st.text_input(f"映射:", value=mapping, key=f"other_mapping_{hash(term)}", disabled=True)
-                    with col_other3:
-                        if st.button("删除", key=f"del_other_{hash(term)}"):
-                            del system.business_rules[term]
-                            if term in system.business_rules_meta:
-                                del system.business_rules_meta[term]
-                            system.save_business_rules()
-                            st.rerun()
+                    # 创建编辑表单
+                    with st.container():
+                        st.write(f"**编辑规则: {business_term}**")
+                        col_edit1, col_edit2 = st.columns(2)
+
+                        with col_edit1:
+                            new_business_term = st.text_input("业务术语:", value=business_term, key=f"other_edit_term_{term}")
+                            new_db_field = st.text_input("数据库字段:", value=db_field, key=f"other_edit_field_{term}")
+                            new_condition_type = st.selectbox("条件类型:", ["等于", "包含", "正则"], index=["等于", "包含", "正则"].index(condition_type), key=f"other_edit_condition_type_{term}")
+                            new_condition_value = st.text_input("条件值:", value=condition_value, key=f"other_edit_condition_value_{term}")
+                        with col_edit2:
+                            available_tables = list(system.table_knowledge.keys()) if system.table_knowledge else []
+                            table_options = ["全部表"] + available_tables
+                            current_table_index = 0 if not table_restriction else (table_options.index(table_restriction) if table_restriction in table_options else 0)
+                            new_table_restriction = st.selectbox("表限制:", table_options, index=current_table_index, key=f"other_edit_table_{term}")
+                            new_rule_type = st.selectbox("规则类型:", ["实体", "字段", "条件", "时间"], index=["实体", "字段", "条件", "时间"].index(rule_type), key=f"other_edit_type_{term}")
+                            new_description = st.text_input("描述:", value=description, key=f"other_edit_desc_{term}")
+
+                        col_btn1, col_btn2, col_btn3 = st.columns(3)
+
+                        with col_btn1:
+                            if st.button("保存更改", key=f"other_save_{term}"):
+                                # 创建新的规则对象
+                                new_rule = {
+                                    "business_term": new_business_term,
+                                    "db_field": new_db_field,
+                                    "condition_type": new_condition_type,
+                                    "condition_value": new_condition_value,
+                                    "table": new_table_restriction if new_table_restriction != "全部表" else None,
+                                    "type": new_rule_type,
+                                    "description": new_description,
+                                    "update_time": time.strftime("%Y-%m-%d %H:%M:%S")
+                                }
+
+                                # 如果术语改变了，需要更新键
+                                if new_business_term != business_term:
+                                    del system.business_rules[term]
+                                    new_key = f"{new_table_restriction}_{new_business_term}" if new_table_restriction != "全部表" else new_business_term
+                                else:
+                                    new_key = term
+
+                                system.business_rules[new_key] = new_rule
+
+                                # 更新元数据
+                                if new_key in system.business_rules_meta:
+                                    system.business_rules_meta[new_key].update({
+                                        "type": new_rule_type,
+                                        "table_restriction": new_table_restriction if new_table_restriction != "全部表" else None,
+                                        "description": new_description,
+                                        "update_time": time.strftime("%Y-%m-%d %H:%M:%S")
+                                    })
+
+                                if system.save_business_rules():
+                                    st.success("✅ 规则已更新")
+                                    st.rerun()
+                                else:
+                                    st.error("❌ 保存失败")
+
+                        with col_btn2:
+                            if st.button("删除规则", key=f"other_delete_{term}"):
+                                if st.session_state.get(f"other_confirm_delete_{term}", False):
+                                    del system.business_rules[term]
+                                    if term in system.business_rules_meta:
+                                        del system.business_rules_meta[term]
+                                    if system.save_business_rules():
+                                        st.success("✅ 规则已删除")
+                                        st.rerun()
+                                    else:
+                                        st.error("❌ 删除失败")
+                                else:
+                                    st.session_state[f"other_confirm_delete_{term}"] = True
+                                    st.warning("⚠️ 再次点击确认删除")
+
+                        with col_btn3:
+                            if st.button("复制规则", key=f"other_copy_{term}"):
+                                # 创建副本
+                                copy_key = f"{term}_copy"
+                                system.business_rules[copy_key] = rule_info.copy() if isinstance(rule_info, dict) else rule_info
+                                if system.save_business_rules():
+                                    st.success("✅ 规则已复制")
+                                    st.rerun()
+                                else:
+                                    st.error("❌ 复制失败")
+                        
+                        # 显示规则预览
+                        col_preview1, col_preview2, col_preview3 = st.columns([3, 2, 1])
+                        
+                        with col_preview1:
+                            if isinstance(rule_info, dict):
+                                preview_text = f"{rule_info.get('business_term', '')} → {rule_info.get('db_field', '')}"
+                                if rule_info.get('condition_value'):
+                                    preview_text += f" ({rule_info.get('condition_value', '')})"
+                            else:
+                                preview_text = f"{term} → {rule_info}"
+                            st.text(preview_text)
+                        
+                        with col_preview2:
+                            if isinstance(rule_info, dict):
+                                table_info = rule_info.get('table', '全部表')
+                                type_info = rule_info.get('type', '实体')
+                                st.caption(f"表: {table_info} | 类型: {type_info}")
+                            else:
+                                st.caption("旧格式规则")
+                        
+                        with col_preview3:
+                            st.caption(f"ID: {term[:10]}...")
     
     with col2:
         st.subheader("V2.3业务规则管理增强")
@@ -2347,13 +2868,20 @@ def show_business_rules_page_v23(system):
                 st.session_state["confirm_reset_rules"] = True
                 st.warning("再次点击确认重置")
 
-        # 条件规则管理区
+        # 条件规则管理区 (已禁用)
         st.subheader("条件规则管理")
-        if "conditional_rules" not in system.business_rules:
-            system.business_rules["conditional_rules"] = []
-        conditional_rules = system.business_rules["conditional_rules"]
-        # 展示现有规则
-        if conditional_rules:
+        st.info("⚠️ 条件规则管理功能已禁用")
+        st.write("如需启用此功能，请联系管理员")
+        
+        # 注释掉自动创建逻辑，避免自动创建conditional_rules
+        # if "conditional_rules" not in system.business_rules:
+        #     system.business_rules["conditional_rules"] = []
+        # conditional_rules = system.business_rules["conditional_rules"]
+        
+        # 展示现有规则（如果存在）
+        if "conditional_rules" in system.business_rules and system.business_rules["conditional_rules"]:
+            conditional_rules = system.business_rules["conditional_rules"]
+            st.write("**现有条件规则（只读）:**")
             for idx, rule in enumerate(conditional_rules):
                 with st.expander(f"规则{idx+1}: {rule.get('description', '')}"):
                     st.write(f"**触发类型**: {rule.get('trigger_type', '')}")
@@ -2361,62 +2889,104 @@ def show_business_rules_page_v23(system):
                     st.write(f"**动作**: {rule.get('action', '')}")
                     st.write(f"**追加条件**: {rule.get('condition', '')}")
                     st.write(f"**描述**: {rule.get('description', '')}")
-                    col_edit, col_del = st.columns(2)
-                    with col_edit:
-                        if st.button("编辑", key=f"edit_cond_{idx}"):
-                            st.session_state[f"editing_cond_{idx}"] = True
-                            st.rerun()
-                    with col_del:
-                        if st.button("删除", key=f"del_cond_{idx}"):
-                            conditional_rules.pop(idx)
-                            system.save_business_rules()
-                            st.success("已删除条件规则")
-                            st.rerun()
-                    # 编辑模式
-                    if st.session_state.get(f"editing_cond_{idx}", False):
-                        with st.form(f"edit_cond_form_{idx}"):
-                            trigger_type = st.selectbox("触发类型", ["field", "keyword"], index=0 if rule.get('trigger_type')=="field" else 1)
-                            trigger_value = st.text_input("触发值", value=rule.get('trigger_value', ''))
-                            action = st.selectbox("动作", ["where_append"], index=0)
-                            condition = st.text_input("追加条件", value=rule.get('condition', ''))
-                            description = st.text_input("描述", value=rule.get('description', ''))
-                            if st.form_submit_button("保存修改"):
-                                rule.update({
-                                    "trigger_type": trigger_type,
-                                    "trigger_value": trigger_value,
-                                    "action": action,
-                                    "condition": condition,
-                                    "description": description
-                                })
-                                system.save_business_rules()
-                                st.session_state[f"editing_cond_{idx}"] = False
-                                st.success("已保存修改")
-                                st.rerun()
+                    
+                    # 只提供删除功能
+                    if st.button("删除规则", key=f"del_cond_{idx}"):
+                        conditional_rules.pop(idx)
+                        system.save_business_rules()
+                        st.success("已删除条件规则")
+                        st.rerun()
         else:
             st.info("暂无条件规则")
-        # 添加新条件规则
+        
+        # 禁用添加新条件规则功能
         st.subheader("添加新条件规则")
-        with st.form("add_conditional_rule"):
-            trigger_type = st.selectbox("触发类型", ["field", "keyword"])
-            trigger_value = st.text_input("触发值", placeholder="如 roadmap family 或 geek全链库存")
-            action = st.selectbox("动作", ["where_append"])
-            condition = st.text_input("追加条件", placeholder="如 [group]='ttl'")
-            description = st.text_input("描述", placeholder="规则说明")
-            if st.form_submit_button("添加条件规则"):
-                if trigger_value and condition:
-                    new_rule = {
-                        "trigger_type": trigger_type,
-                        "trigger_value": trigger_value,
-                        "action": action,
-                        "condition": condition,
-                        "description": description
-                    }
-                    conditional_rules.append(new_rule)
-                    system.save_business_rules()
-                    st.success("已添加条件规则")
-                    st.rerun()
-                else:
-                    st.warning("请填写触发值和追加条件")
+        st.warning("❌ 添加功能已禁用")
+        st.write("如需添加条件规则，请联系管理员启用此功能")
+
+        # 业务规则管理
+        st.subheader("业务规则管理")
+        
+        # 支持表特定的业务规则
+        st.write("**表特定业务规则**")
+        st.write("同一业务术语在不同表中可能有不同的映射规则")
+        
+        # 选择表
+        available_tables = list(system.table_knowledge.keys()) if system.table_knowledge else []
+        if available_tables:
+            selected_table = st.selectbox("选择表:", available_tables, key="business_rule_table")
+            
+            # 显示该表的业务规则
+            table_business_rules = system.table_knowledge[selected_table].get("business_rules", {})
+            
+            st.write(f"**{selected_table} 表的业务规则:**")
+            
+            # 添加新业务规则
+            with st.form(f"add_business_rule_{selected_table}"):
+                col1, col2 = st.columns(2)
+                with col1:
+                    business_term = st.text_input("业务术语:", key=f"business_term_{selected_table}")
+                    db_field = st.text_input("数据库字段:", key=f"db_field_{selected_table}")
+                with col2:
+                    condition_type = st.selectbox("条件类型:", ["等于", "包含", "正则"], key=f"condition_type_{selected_table}")
+                    condition_value = st.text_input("条件值:", key=f"condition_value_{selected_table}")
+                
+                if st.form_submit_button("添加业务规则"):
+                    if business_term and db_field:
+                        rule_key = f"{selected_table}_{business_term}"
+                        system.business_rules[rule_key] = {
+                            "table": selected_table,
+                            "business_term": business_term,
+                            "db_field": db_field,
+                            "condition_type": condition_type,
+                            "condition_value": condition_value,
+                            "description": f"{selected_table}表中{business_term}映射到{db_field}"
+                        }
+                        system.save_business_rules()
+                        st.success(f"已添加业务规则: {business_term} → {db_field}")
+                        st.rerun()
+            
+            # 显示现有业务规则
+            if table_business_rules:
+                st.write("**现有业务规则:**")
+                for rule_key, rule_info in table_business_rules.items():
+                    col1, col2, col3 = st.columns([3, 1, 1])
+                    with col1:
+                        st.write(f"**{rule_info['business_term']}** → {rule_info['db_field']}")
+                        st.write(f"条件: {rule_info['condition_type']} = '{rule_info['condition_value']}'")
+                    with col2:
+                        if st.button(f"编辑", key=f"edit_rule_{rule_key}"):
+                            st.session_state[f"editing_rule_{rule_key}"] = True
+                    with col3:
+                        if st.button(f"删除", key=f"del_rule_{rule_key}"):
+                            del table_business_rules[rule_key]
+                            system.save_business_rules()
+                            st.success(f"已删除业务规则: {rule_info['business_term']}")
+                            st.rerun()
+                    
+                    # 编辑模式
+                    if st.session_state.get(f"editing_rule_{rule_key}", False):
+                        with st.form(f"edit_rule_{rule_key}"):
+                            new_db_field = st.text_input("数据库字段:", value=rule_info['db_field'], key=f"edit_db_field_{rule_key}")
+                            new_condition_type = st.selectbox("条件类型:", ["等于", "包含", "正则"], index=["等于", "包含", "正则"].index(rule_info['condition_type']), key=f"edit_condition_type_{rule_key}")
+                            new_condition_value = st.text_input("条件值:", value=rule_info['condition_value'], key=f"edit_condition_value_{rule_key}")
+                            
+                            if st.form_submit_button("保存"):
+                                rule_info['db_field'] = new_db_field
+                                rule_info['condition_type'] = new_condition_type
+                                rule_info['condition_value'] = new_condition_value
+                                system.save_business_rules()
+                                st.session_state[f"editing_rule_{rule_key}"] = False
+                                st.success("业务规则已更新")
+                                st.rerun()
+                        
+                        if st.button("取消编辑", key=f"cancel_edit_{rule_key}"):
+                            st.session_state[f"editing_rule_{rule_key}"] = False
+                            st.rerun()
+                    
+                    st.divider()
+        else:
+            st.warning("请先导入表结构到知识库")
 
 def show_prompt_templates_page_v23(system):
     """提示词管理页面 V2.3 - 完整功能版"""
@@ -2968,6 +3538,385 @@ def show_system_monitoring_page_v23(system):
                         st.success(f"{db_config['name']}: {msg}")
                     else:
                         st.error(f"{db_config['name']}: {msg}")
+
+def show_product_hierarchy_page_v25(system):
+    """产品层级管理页面 V2.5 - 处理复杂的产品层级关系和跨表维度映射"""
+    st.header("产品层级管理 V2.5")
+    
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        st.subheader("产品层级维度映射")
+        
+        # 加载产品层级配置
+        try:
+            with open("product_hierarchy.json", 'r', encoding='utf-8') as f:
+                product_hierarchy = json.load(f)
+        except:
+            product_hierarchy = {"product_hierarchy": {}}
+        
+        # 维度映射管理
+        st.write("**产品维度层级:**")
+        dimension_mapping = product_hierarchy.get("product_hierarchy", {}).get("dimension_mapping", {})
+        
+        for dim_name, dim_info in dimension_mapping.items():
+            with st.expander(f"📊 {dim_name} (Level {dim_info.get('level', 0)})"):
+                col_dim1, col_dim2 = st.columns(2)
+                
+                with col_dim1:
+                    st.write(f"**描述**: {dim_info.get('description', '')}")
+                    st.write(f"**父级**: {dim_info.get('parent', '无')}")
+                    st.write(f"**子级**: {', '.join(dim_info.get('children', []))}")
+                
+                with col_dim2:
+                    examples = dim_info.get('examples', [])
+                    if examples:
+                        st.write("**示例**:")
+                        for example in examples:
+                            st.write(f"- {example}")
+                
+                # 编辑功能
+                if st.button(f"编辑{dim_name}", key=f"edit_dim_{dim_name}"):
+                    st.session_state[f"editing_dim_{dim_name}"] = True
+                    st.rerun()
+        
+        # 跨表映射管理
+        st.subheader("跨表维度映射")
+        cross_table_mapping = product_hierarchy.get("product_hierarchy", {}).get("cross_table_mapping", {})
+        
+        for table_name, table_info in cross_table_mapping.items():
+            with st.expander(f"📋 {table_name}"):
+                st.write(f"**可用维度**: {', '.join(table_info.get('available_dimensions', []))}")
+                st.write(f"**默认聚合**: {table_info.get('default_aggregation', '')}")
+                st.write(f"**描述**: {table_info.get('description', '')}")
+        
+        # 聚合规则管理
+        st.subheader("聚合规则管理")
+        aggregation_rules = product_hierarchy.get("product_hierarchy", {}).get("aggregation_rules", {})
+        
+        for rule_name, rule_info in aggregation_rules.items():
+            with st.expander(f"⚙️ {rule_name}"):
+                st.write(f"**条件**: {rule_info.get('condition', '')}")
+                st.write(f"**动作**: {rule_info.get('action', '')}")
+                st.write(f"**SQL模板**: {rule_info.get('sql_template', '')}")
+                st.write(f"**说明**: {rule_info.get('explanation', '')}")
+        
+        # 添加新的维度映射
+        st.subheader("添加维度映射")
+        with st.form("add_dimension_mapping"):
+            col_add1, col_add2 = st.columns(2)
+            
+            with col_add1:
+                dim_name = st.text_input("维度名称:", placeholder="如: roadmap family")
+                dim_level = st.number_input("层级:", min_value=1, max_value=10, value=1)
+                dim_description = st.text_input("描述:", placeholder="维度说明")
+            
+            with col_add2:
+                dim_parent = st.text_input("父级维度:", placeholder="如: box")
+                dim_children = st.text_input("子级维度:", placeholder="用逗号分隔，如: model,box")
+                dim_examples = st.text_input("示例值:", placeholder="用逗号分隔，如: 510S,520S,ttl")
+            
+            if st.form_submit_button("添加维度映射"):
+                if dim_name:
+                    new_dim = {
+                        "level": dim_level,
+                        "description": dim_description,
+                        "parent": dim_parent if dim_parent else None,
+                        "children": [c.strip() for c in dim_children.split(',') if c.strip()],
+                        "examples": [e.strip() for e in dim_examples.split(',') if e.strip()]
+                    }
+                    
+                    if "product_hierarchy" not in product_hierarchy:
+                        product_hierarchy["product_hierarchy"] = {}
+                    if "dimension_mapping" not in product_hierarchy["product_hierarchy"]:
+                        product_hierarchy["product_hierarchy"]["dimension_mapping"] = {}
+                    
+                    product_hierarchy["product_hierarchy"]["dimension_mapping"][dim_name] = new_dim
+                    
+                    # 保存配置
+                    with open("product_hierarchy.json", 'w', encoding='utf-8') as f:
+                        json.dump(product_hierarchy, f, ensure_ascii=False, indent=2)
+                    
+                    st.success(f"已添加维度映射: {dim_name}")
+                    st.rerun()
+        
+        # 智能SQL生成测试
+        st.subheader("智能SQL生成测试")
+        
+        test_question = st.text_input("测试问题:", placeholder="如: 510S 25年7月全链库存，营销目标")
+        
+        if st.button("生成智能SQL"):
+            if test_question:
+                # 分析问题中的维度
+                detected_dimensions = []
+                for dim_name in dimension_mapping.keys():
+                    if dim_name.lower() in test_question.lower():
+                        detected_dimensions.append(dim_name)
+                
+                st.write("**检测到的维度:**")
+                for dim in detected_dimensions:
+                    st.write(f"- {dim}")
+                
+                # 生成跨表SQL
+                if "roadmap family" in detected_dimensions and "营销目标" in test_question:
+                    st.write("**跨表查询SQL:**")
+                    st.code("""
+-- 查询dtsupply_summary表的roadmap family维度
+SELECT [roadmap family], SUM(全链库存) as 库存总量
+FROM dtsupply_summary 
+WHERE [roadmap family] LIKE '%510S%' 
+  AND 自然年 = 2025 AND 财月 = '7月' AND 财周 = 'ttl'
+
+-- 查询con_target表的Product Line维度（需要维度映射）
+SELECT [Product Line], SUM(营销目标) as 目标总量
+FROM con_target 
+WHERE [Product Line] = 'IdeaCentre'  -- 将roadmap family映射到Product Line
+  AND 自然年 = 2025 AND 财月 = '7月'
+                    """, language="sql")
+                    
+                    st.info("💡 **维度映射说明**: 因为con_target表只有Product Line维度，所以将roadmap family的510S映射到Product Line的IdeaCentre")
+                
+                elif "Product Line" in detected_dimensions and "全链库存" in test_question:
+                    st.write("**跨表查询SQL:**")
+                    st.code("""
+-- 查询dtsupply_summary表（需要维度映射）
+SELECT [roadmap family], SUM(全链库存) as 库存总量
+FROM dtsupply_summary 
+WHERE [roadmap family] = 'ttl'  -- 将Product Line映射到roadmap family的ttl汇总
+  AND 自然年 = 2025 AND 财月 = '7月' AND 财周 = 'ttl'
+
+-- 查询con_target表的Product Line维度
+SELECT [Product Line], SUM(营销目标) as 目标总量
+FROM con_target 
+WHERE [Product Line] = 'IdeaCentre'
+  AND 自然年 = 2025 AND 财月 = '7月'
+                    """, language="sql")
+                    
+                    st.info("💡 **维度映射说明**: 因为dtsupply_summary表支持roadmap family维度，所以将Product Line映射到roadmap family的ttl汇总")
+    
+    with col2:
+        st.subheader("V2.5产品层级管理增强")
+        st.markdown("""
+        ### 🚀 新增功能
+        - **维度层级管理**: 定义产品各层级关系
+        - **跨表映射**: 处理不同表的维度差异
+        - **智能聚合**: 自动处理维度不匹配问题
+        - **业务层级**: 支持WW→PRC→CON层级
+        
+        ### 📊 维度层级
+        - **Product Line**: 产品线级别
+        - **IdeaCentre**: IdeaCentre系列
+        - **model**: 具体型号
+        - **box**: 包装级别
+        - **roadmap family**: 路线图系列
+        
+        ### 🛠️ 映射规则
+        - **con_target表**: 只有Product Line维度
+        - **dtsupply_summary表**: 支持多层级维度
+        - **自动映射**: 根据查询需求自动转换
+        
+        ### ⚡ 智能处理
+        - **维度检测**: 自动识别查询中的维度
+        - **跨表查询**: 处理不同表的维度差异
+        - **聚合规则**: 自动应用合适的聚合方式
+        """)
+        
+        # 统计信息
+        st.subheader("统计信息")
+        
+        total_dimensions = len(dimension_mapping)
+        total_tables = len(cross_table_mapping)
+        total_rules = len(aggregation_rules)
+        
+        st.metric("维度数量", total_dimensions)
+        st.metric("表映射", total_tables)
+        st.metric("聚合规则", total_rules)
+        
+        # 导出功能
+        if st.button("导出产品层级配置"):
+            st.download_button(
+                label="下载JSON文件",
+                data=json.dumps(product_hierarchy, ensure_ascii=False, indent=2),
+                file_name=f"product_hierarchy_{time.strftime('%Y%m%d_%H%M%S')}.json",
+                mime="application/json"
+            )
+        
+        # 重置功能
+        if st.button("重置为默认配置"):
+            if st.session_state.get("confirm_reset_hierarchy", False):
+                # 重新创建默认配置
+                default_hierarchy = {
+                    "product_hierarchy": {
+                        "dimension_mapping": {
+                            "Product Line": {
+                                "level": 1,
+                                "description": "产品线级别",
+                                "examples": ["IdeaCentre", "IdeaPAD"],
+                                "parent": None,
+                                "children": ["IdeaCentre", "IdeaPAD"]
+                            }
+                        },
+                        "cross_table_mapping": {
+                            "dtsupply_summary": {
+                                "available_dimensions": ["roadmap family", "box", "model"],
+                                "default_aggregation": "ttl",
+                                "description": "供应汇总表"
+                            },
+                            "con_target": {
+                                "available_dimensions": ["Product Line"],
+                                "default_aggregation": "IdeaCentre",
+                                "description": "营销目标表"
+                            }
+                        }
+                    }
+                }
+                
+                with open("product_hierarchy.json", 'w', encoding='utf-8') as f:
+                    json.dump(default_hierarchy, f, ensure_ascii=False, indent=2)
+                
+                st.success("已重置为默认配置")
+                st.session_state["confirm_reset_hierarchy"] = False
+                st.rerun()
+            else:
+                st.session_state["confirm_reset_hierarchy"] = True
+                st.warning("再次点击确认重置")
+
+# 为Text2SQLQueryEngine添加缺失的方法
+def add_missing_methods_to_system(system):
+    """为系统添加缺失的方法"""
+    
+    def apply_product_hierarchy_mapping(question: str, sql: str, db_config: dict) -> str:
+        """应用产品层级映射，处理跨表维度不匹配问题"""
+        try:
+            # 加载产品层级配置
+            with open("product_hierarchy.json", 'r', encoding='utf-8') as f:
+                product_hierarchy = json.load(f)
+        except:
+            return sql  # 如果配置文件不存在，直接返回原SQL
+        
+        cross_table_mapping = product_hierarchy.get("product_hierarchy", {}).get("cross_table_mapping", {})
+        aggregation_rules = product_hierarchy.get("product_hierarchy", {}).get("aggregation_rules", {})
+        
+        # 检测问题中的维度
+        detected_dimensions = []
+        for table_name, table_info in cross_table_mapping.items():
+            for dim in table_info.get("available_dimensions", []):
+                if dim.lower() in question.lower():
+                    detected_dimensions.append(dim)
+        
+        # 应用聚合规则
+        for rule_name, rule_info in aggregation_rules.items():
+            condition = rule_info.get("condition", "")
+            if condition.lower() in question.lower():
+                action = rule_info.get("action", "")
+                sql_template = rule_info.get("sql_template", "")
+                
+                # 根据规则修改SQL
+                if "con_target" in sql and "roadmap family" in detected_dimensions:
+                    # 将roadmap family映射到Product Line
+                    sql = sql.replace("[roadmap family]", "[Product Line]")
+                    sql = sql.replace("LIKE '%510S%'", "= 'IdeaCentre'")
+                    st.info(f"💡 应用维度映射: {action}")
+                
+                elif "dtsupply_summary" in sql and "Product Line" in detected_dimensions:
+                    # 将Product Line映射到roadmap family
+                    sql = sql.replace("[Product Line]", "[roadmap family]")
+                    sql = sql.replace("= 'IdeaCentre'", "= 'ttl'")
+                    st.info(f"💡 应用维度映射: {action}")
+        
+        return sql
+    
+    # 添加缺失的方法到系统
+    system.apply_product_hierarchy_mapping = apply_product_hierarchy_mapping
+    
+    # 添加其他可能缺失的属性
+    if not hasattr(system, 'business_rules_meta'):
+        system.business_rules_meta = {}
+    if not hasattr(system, 'template_metadata'):
+        system.template_metadata = {}
+    if not hasattr(system, 'sql_cache'):
+        system.sql_cache = None
+    if not hasattr(system, 'vn'):
+        system.vn = None
+    if not hasattr(system, 'databases'):
+        system.databases = {}
+    
+    return system
+
+# 在main函数中添加产品层级管理页面
+def main():
+    """主函数 - 添加产品层级管理页面"""
+    st.set_page_config(
+        page_title="TEXT2SQL 分析系统 V2.5",
+        page_icon="📊",
+        layout="wide",
+        initial_sidebar_state="expanded"
+    )
+    
+    # 初始化系统
+    # 加载配置
+    table_knowledge = load_json("table_knowledge.json")
+    relationships = load_json("table_relationships.json")
+    business_rules = load_json("business_rules.json")
+    product_knowledge = load_json("product_knowledge.json")
+    historical_qa = load_json("historical_qa.json")
+    prompt_templates = load_json("prompt_templates.json")
+    
+    # 初始化组件
+    db_manager = DatabaseManager()
+    vanna = VannaWrapper()
+    
+    # 初始化系统
+    system = Text2SQLQueryEngine(
+        table_knowledge=table_knowledge,
+        relationships=relationships,
+        business_rules=business_rules,
+        product_knowledge=product_knowledge,
+        historical_qa=historical_qa,
+        vanna=vanna,
+        db_manager=db_manager,
+        prompt_templates=prompt_templates
+    )
+    
+    # 添加缺失的方法
+    system = add_missing_methods_to_system(system)
+    
+    # 侧边栏导航
+    st.sidebar.title("📊 TEXT2SQL 分析系统")
+    st.sidebar.markdown("**版本**: V2.5")
+    
+    # 页面选择
+    page = st.sidebar.selectbox(
+        "选择功能页面:",
+        [
+            "SQL查询生成",
+            "数据库管理", 
+            "表结构管理",
+            "产品知识库",
+            "业务规则管理",
+            "产品层级管理",  # 新增
+            "提示词管理",
+            "系统监控"
+        ]
+    )
+    
+    # 页面路由
+    if page == "SQL查询生成":
+        show_sql_query_page_v25(system)
+    elif page == "数据库管理":
+        show_database_management_page_v23(system)
+    elif page == "表结构管理":
+        show_table_management_page_v23(system)
+    elif page == "产品知识库":
+        show_product_knowledge_page_v23(system)
+    elif page == "业务规则管理":
+        show_business_rules_page_v23(system)
+    elif page == "产品层级管理":  # 新增
+        show_product_hierarchy_page_v25(system)
+    elif page == "提示词管理":
+        show_prompt_templates_page_v23(system)
+    elif page == "系统监控":
+        show_system_monitoring_page_v23(system)
 
 if __name__ == "__main__":
     main()
