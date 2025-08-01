@@ -29,15 +29,27 @@
     "create_time": "2025-07-21 10:52:02",
     "usage_count": 0
   },
+  "25年": {
+    "type": "时间",
+    "description": "包含25年，例如：25年 --》 where 自然年=2025",
+    "create_time": "2025-07-21 10:53:37",
+    "usage_count": 0
+  },
   "25 ": {
     "type": "时间",
-    "description": "包含25  ， 例如： 25年    --》   where  自然年=2025 ",
+    "description": "包含25，例如：25年 --》 where 自然年=2025",
+    "create_time": "2025-07-21 10:53:37",
+    "usage_count": 0
+  },
+  "7月": {
+    "type": "时间",
+    "description": "包含7月，例如：7月 --》 where 财月='7月'",
     "create_time": "2025-07-21 10:53:37",
     "usage_count": 0
   },
   "今年": {
     "type": "时间",
-    "description": "包含25  ， 例如： 25年    --》   where  自然年=2025 ",
+    "description": "包含今年，例如：今年 --》 where 自然年=2025",
     "create_time": "2025-07-21 10:54:35",
     "usage_count": 0
   },

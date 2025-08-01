@@ -563,6 +563,25 @@ class Text2SQLQueryEngine:
         # 收集WHERE条件
         where_conditions = []
         
+        # 改进的时间解析逻辑
+        time_patterns = {
+            r'(\d{2})年(\d{1,2})月': lambda m: f"自然年=20{m.group(1)} AND 财月='{m.group(2)}月'",
+            r'(\d{2})年': lambda m: f"自然年=20{m.group(1)}",
+            r'(\d{1,2})月': lambda m: f"财月='{m.group(1)}月'",
+            r'25年(\d{1,2})月': lambda m: f"自然年=2025 AND 财月='{m.group(1)}月'",
+            r'25年': lambda m: "自然年=2025",
+            r'7月': lambda m: "财月='7月'",
+        }
+        
+        # 应用时间模式匹配
+        for pattern, replacement_func in time_patterns.items():
+            matches = re.finditer(pattern, processed_question)
+            for match in matches:
+                time_condition = replacement_func(match)
+                where_conditions.append(time_condition)
+                # 从问题中移除时间表达式，避免重复处理
+                processed_question = processed_question.replace(match.group(0), '')
+        
         # 应用业务规则
         for business_term, rule_info in self.business_rules.items():
             # 处理新的业务规则格式（字典）
